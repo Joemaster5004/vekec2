@@ -1,0 +1,4 @@
+[
+  {"prompt":"ภาษาใดใช้ตกแต่งหน้าเว็บ?","options":["HTML","CSS","SQL","PHP"],"answer":1},
+  {"prompt":"ข้อใดเป็นแท็กหัวข้อหลักใน HTML?","options":["p","h1","div","span"],"answer":1}
+]

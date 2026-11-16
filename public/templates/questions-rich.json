@@ -1,0 +1,9 @@
+[
+  {
+    "prompt": "<h3>การตกแต่งหน้าเว็บ</h3><p>ภาษาใดใช้กำหนด <strong>สีและรูปแบบ</strong> ของหน้าเว็บ?</p>",
+    "options": ["<p>HTML</p>", "<p><strong>CSS</strong></p>", "<p>SQL</p>", "<p>PHP</p>"],
+    "answer": 1,
+    "explanation": "<p><strong>CSS</strong> ใช้กำหนดรูปแบบการแสดงผล เช่น สี ขนาดตัวอักษร และตำแหน่งองค์ประกอบ</p><ol><li>HTML กำหนดโครงสร้างเนื้อหา</li><li>CSS กำหนดรูปแบบการแสดงผล</li></ol>",
+    "content_format": "html"
+  }
+]

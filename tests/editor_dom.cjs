@@ -1,0 +1,50 @@
+// Quill/editor runtime checks in a simulated DOM; no visual/browser assertions.
+const { JSDOM, VirtualConsole } = require('jsdom');
+const fs = require('node:fs');
+const assert = require('node:assert/strict');
+const virtualConsole = new VirtualConsole();
+const errors = []; virtualConsole.on('jsdomError', error => errors.push(error));
+const dom = new JSDOM(`<!doctype html><meta name="csrf-token" content="test-token"><form id="question"><input name="content_format" value="text" type="hidden">${['prompt','option_a','option_b','option_c','option_d','explanation'].map(name => `<label id="${name}-label" for="${name}">${name}</label><textarea id="${name}" name="${name}" class="rich-editor" data-course-id="42" maxlength="50000" ${name === 'explanation' ? '' : 'required'}></textarea>`).join('')}<button>Submit</button></form>`, { url: 'http://localhost:8090', runScripts: 'outside-only', pretendToBeVisual: true, virtualConsole });
+const { window } = dom;
+window.TextEncoder = TextEncoder;
+window.Range.prototype.getBoundingClientRect = () => ({ left:0,right:0,top:0,bottom:0,width:0,height:0 });
+window.Range.prototype.getClientRects = () => [];
+window.HTMLElement.prototype.scrollIntoView = () => {};
+window.eval(fs.readFileSync('public/assets/vendor/quill/quill.js','utf8'));
+window.eval(fs.readFileSync('public/assets/rich-editor.js','utf8'));
+let count=0;
+function check(value,label){assert.ok(value,label);count++;console.log('PASS',label);}
+async function run(){
+  const form=window.document.getElementById('question');
+  const editors=[...window.document.querySelectorAll('.ql-container')].map(node => window.Quill.find(node));
+  check(editors.length===6 && editors.every(Boolean),'six editors initialize using vendored Quill');
+  check(form.elements.content_format.value==='html','format switches only after successful initialization');
+  check([...form.querySelectorAll('textarea')].every(node=>node.hidden&&!node.required),'fallback fields safely hidden after initialization');
+  let submit=new window.Event('submit',{bubbles:true,cancelable:true});form.dispatchEvent(submit);check(submit.defaultPrevented,'empty rich question prevents form submission');
+  const path='/media/images/'+'a'.repeat(40)+'.png';
+  editors.forEach((editor,i)=>editor.setText(i===5?'explanation':'Option '+i));
+  editors[0].formatText(0,6,'bold',true);
+  check(form.elements.prompt.value.includes('<strong>'),'formatted HTML syncs to submitted field');
+  editors[1].setContents([{insert:{image:path}},{insert:'\n'}]);
+  submit=new window.Event('submit',{bubbles:true,cancelable:true});form.dispatchEvent(submit);check(!submit.defaultPrevented,'image-only answer satisfies required validation');
+  editors[0].clipboard.dangerouslyPasteHTML('<p>safe</p><img src="https://example.com/image.png"><img src="data:image/png;base64,AAA">');
+  check(!form.elements.prompt.value.includes('<img'),'external and base64 pasted images are excluded');
+  editors[0].clipboard.dangerouslyPasteHTML('<p>local</p><img src="http://localhost:8090'+path+'" alt="Diagram">');
+  check(form.elements.prompt.value.includes('src="'+path+'"') && form.elements.prompt.value.includes('alt="Diagram"'),'same-origin copied image becomes canonical and retains alt');
+  let release;
+  window.fetch=async (url,options)=>{check(url==='/teach/42/images'&&options.headers['X-CSRF-Token']==='test-token','upload uses current course and CSRF header');return new Promise(resolve=>{release=()=>resolve({ok:true,json:async()=>({url:path})});});};
+  const picker=form.querySelector('input[type=file]');
+  Object.defineProperty(picker,'files',{configurable:true,value:[new window.File(['image'],'photo.png',{type:'image/png'})]});
+  picker.dispatchEvent(new window.Event('change'));
+  submit=new window.Event('submit',{bubbles:true,cancelable:true});form.dispatchEvent(submit);check(submit.defaultPrevented,'submit waits for in-flight image upload');
+  release();await new Promise(resolve=>setTimeout(resolve,25));
+  check(form.elements.prompt.value.includes(path)&&!form.querySelector('[aria-busy=true]'),'uploaded image inserted and busy state cleared');
+  const image=editors[0].root.querySelector('img');image.dispatchEvent(new window.MouseEvent('click',{bubbles:true}));window.prompt=()=> 'ภาพประกอบโจทย์';form.querySelector('.ql-imageAlt').click();
+  check(form.elements.prompt.value.includes('alt="ภาพประกอบโจทย์"'),'image alt command persists Thai description');
+  const before=form.elements.prompt.value;
+  window.fetch=async()=>({ok:false,json:async()=>({error:'ทดสอบข้อผิดพลาด'})});picker.dispatchEvent(new window.Event('change'));await new Promise(resolve=>setTimeout(resolve,25));
+  check(form.elements.prompt.value===before&&form.querySelector('.rich-editor-status').textContent==='ทดสอบข้อผิดพลาด','upload failure retains written content and reports error');
+  check(errors.length===0,'no runtime DOM errors');
+  console.log(`All ${count} editor DOM checks passed.`);window.close();
+}
+run().catch(error=>{console.error(error);window.close();process.exitCode=1;});

@@ -1,0 +1,4 @@
+<?php use function App\{e,dateThai,url};$certificateAssets=true;$title=$verify?'ตรวจสอบใบประกาศนียบัตร':'ใบประกาศนียบัตร';require __DIR__.'/layout-top.php'; ?>
+<div class="page-heading print-hide"><div><div class="eyebrow dark">CERTIFICATE OF COMPLETION</div><h1><?= $title ?></h1><p><?= $verify?'พบใบประกาศที่ออกจากระบบนี้ตามเลขอ้างอิง':'เลือกพิมพ์แล้วบันทึกเป็น PDF หรือพิมพ์เอกสารแนวนอน' ?></p></div><?php if(!$verify): ?><button class="button" data-print><?= icon('download') ?>พิมพ์ / บันทึก PDF</button><?php endif; ?></div>
+<?php if($verify): ?><div class="notice print-hide"><?= icon('shield') ?>ตรวจสอบเลขอ้างอิงแล้ว · ออกเมื่อ <?= dateThai($certificate['issued_at']) ?></div><?php endif; ?>
+<?php require __DIR__.'/certificate-paper.php'; ?><?php if(!$verify): ?><a class="text-link print-hide" href="/verify/<?= e($certificate['code']) ?>"><?= icon('shield') ?>เปิดหน้าตรวจสอบสำหรับแชร์</a><?php endif; ?><?php require __DIR__.'/layout-bottom.php'; ?>

@@ -1,0 +1,9 @@
+.ai-draft summary {cursor:pointer;line-height:1.8;padding:4px 0}
+.ai-draft form {margin-top:16px}
+.ai-draft textarea {width:100%;min-height:80px;resize:vertical}
+.ai-draft input,.ai-draft select {max-width:100%;min-width:0}
+.ai-draft [data-error="true"] {color:#b42318}
+.ai-draft #ai-draft-preview {margin-top:20px;border-top:1px solid #ddd;padding-top:16px}
+.ai-draft .ai-question {border:1px solid #ddd;border-radius:10px;padding:12px;min-width:0}
+.ai-draft .ai-question label {display:block;margin:10px 0}
+.ai-draft button {white-space:normal;margin-top:10px}

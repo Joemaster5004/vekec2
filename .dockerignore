@@ -1,0 +1,7 @@
+.env
+.git
+.DS_Store
+storage
+tests/.artifacts
+**/__pycache__/
+vendor

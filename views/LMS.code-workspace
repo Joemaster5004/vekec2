@@ -1,0 +1,16 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"path": "../../Python"
+		},
+		{
+			"path": "../../kpt"
+		},
+		{
+			"path": "../../kpt_plus+"
+		}
+	]
+}

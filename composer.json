@@ -1,0 +1,7 @@
+{
+  "name": "kpt/vekec-lms",
+  "description": "Vocational learning management system for Kamphaeng Phet Technical College",
+  "type": "project",
+  "require": {"php": "^8.3", "ext-mysqli": "*", "ext-curl": "*", "firebase/php-jwt": "^7.0"},
+  "config": {"sort-packages": true}
+}

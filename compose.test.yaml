@@ -1,0 +1,42 @@
+name: vekec-lms-test
+services:
+  web:
+    image: vekec-lms-web:latest
+    ports: ["127.0.0.1:8090:80"]
+    environment:
+      APP_ENV: test
+      APP_URL: http://localhost:8090
+      APP_KEY: test-only-key-not-for-production
+      DB_HOST: db
+      DB_DATABASE: vekec_test
+      DB_USERNAME: tester
+      DB_PASSWORD: test-only-database-password
+      THAID_ENABLED: "false"
+      AI_ENABLED: "true"
+      AI_TEST_PROVIDER: "true"
+      AI_CREDENTIALS_ENCRYPTION_KEY: "dGVzdC1vbmx5LWVuY3J5cHRpb24ta2V5LTAwMDAwMDA="
+      AI_INSTITUTION_PROVIDER: mock
+      AI_INSTITUTION_TEACHER_ACCESS: "false"
+    volumes:
+      - .:/var/www/html:ro
+      - test_uploads:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: vekec_test
+      MYSQL_USER: tester
+      MYSQL_PASSWORD: test-only-database-password
+      MYSQL_ROOT_PASSWORD: test-only-root-password
+    tmpfs: /var/lib/mysql
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysql -h 127.0.0.1 -u $$MYSQL_USER -D $$MYSQL_DATABASE -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
+volumes:
+  test_uploads:

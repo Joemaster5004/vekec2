@@ -1,0 +1,3 @@
+﻿name,email,password,role,level,active
+สมาชิกตัวอย่าง,member@example.invalid,ChangeThisPassword!2026,student,public,1
+ครูตัวอย่าง,teacher@example.invalid,UseAnotherPassword!2026,teacher,voc2,1

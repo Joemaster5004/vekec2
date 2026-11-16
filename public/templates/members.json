@@ -1,0 +1,18 @@
+[
+  {
+    "name": "สมาชิกตัวอย่าง",
+    "email": "member@example.invalid",
+    "password": "ChangeThisPassword!2026",
+    "role": "student",
+    "level": "public",
+    "active": 1
+  },
+  {
+    "name": "ครูตัวอย่าง",
+    "email": "teacher@example.invalid",
+    "password": "UseAnotherPassword!2026",
+    "role": "teacher",
+    "level": "voc2",
+    "active": 1
+  }
+]

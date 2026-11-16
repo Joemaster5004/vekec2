@@ -1,0 +1,7 @@
+.env
+vendor/
+storage/*
+!storage/.gitkeep
+.DS_Store
+tests/.artifacts/
+__pycache__/

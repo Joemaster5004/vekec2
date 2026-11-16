@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/app/bootstrap.php';
+use App\{DB,AiCredentials,AiBilling};
+use function App\env;
+if(PHP_SAPI!=='cli'||env('APP_ENV')!=='test'||env('DB_DATABASE')!=='vekec_test')exit(1);
+$u=DB::one("SELECT * FROM users WHERE email='teacher@example.invalid'");$_SESSION=['user_id'=>$u['id']];
+DB::run('INSERT INTO courses(teacher_id,title,code,description,category) VALUES(?,?,?,?,?)',[$u['id'],'Migration test','AI-MIGRATION','Test only','ทดสอบระบบ']);$cid=DB::id();
+$c=AiCredentials::create((int)$u['id'],['provider'=>'mock','label'=>'Migration fixture','secret'=>'test-valid-migration']);AiCredentials::verify((int)$u['id'],$c['credential_id'],['allow_billable_test'=>false,'confirmed_provider_revision'=>1]);
+$b=['capability'=>'assistant','payer'=>'teacher','credential_id'=>$c['credential_id'],'model'=>'mock-model','monthly_budget'=>1,'currency'=>'USD'];
+AiBilling::save($u,$cid,['expected_revision'=>0,'bindings'=>[$b],'confirmed_charge_acceptance'=>true]);
+$reserved=AiBilling::reserve($cid,(int)$u['id'],'assistant',1000,'legacy-reserved');$started=AiBilling::reserve($cid,(int)$u['id'],'assistant',1000,'legacy-started');AiBilling::begin($started['id']);
+DB::run("INSERT INTO users(name,email,role) VALUES('Legacy student',?,'student')",['legacy-'.bin2hex(random_bytes(5)).'@example.invalid']);$sid=DB::id();
+DB::run('UPDATE ai_usage_reservations SET actor_id=? WHERE id IN (?,?)',[$sid,$reserved['id'],$started['id']]);
+DB::run("UPDATE ai_billing SET bindings=JSON_SET(bindings,'$[0].allow_student_usage',true,'$[0].student_daily_request_limit',10) WHERE course_id=?",[$cid]);
+DB::run("DELETE FROM schema_migrations WHERE version='007_admin_ai_providers'");
+passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(dirname(__DIR__).'/bin/migrate.php'),$status);if($status!==0)exit(1);
+$raw=DB::one('SELECT bindings,revision FROM ai_billing WHERE course_id=?',[$cid]);
+if(str_contains($raw['bindings'],'allow_student_usage')||str_contains($raw['bindings'],'student_daily_request_limit')||(int)$raw['revision']!==2)throw new RuntimeException('Legacy student settings not removed');
+if(DB::one('SELECT status FROM ai_usage_reservations WHERE id=?',[$reserved['id']])['status']!=='released')throw new RuntimeException('Student reservation not released');
+if(DB::one('SELECT status FROM ai_usage_reservations WHERE id=?',[$started['id']])['status']!=='started')throw new RuntimeException('Already started usage must be preserved');
+passthru(escapeshellarg(PHP_BINARY).' '.escapeshellarg(dirname(__DIR__).'/bin/migrate.php'),$status);if($status!==0)exit(1);
+if((int)DB::one('SELECT revision FROM ai_billing WHERE course_id=?',[$cid])['revision']!==2)throw new RuntimeException('Migration not idempotent');
+echo "PASS migration clears legacy student settings, releases unstarted student usage, preserves started history and is repeatable.\n";
