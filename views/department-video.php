@@ -3,7 +3,7 @@ use App\{DB,DepartmentVideo};
 use function App\{e,csrfField};
 $title=$video['title'];require __DIR__.'/layout-top.php';$id=(int)$video['id'];$mode=DepartmentVideo::mode($video);
 ?>
-<div class="breadcrumb"><a href="/#department-videos">วิดีโอแนะนำแผนกวิชา</a><?= icon('chevron') ?><span><?= e($video['department']) ?></span></div>
+<div class="breadcrumb"><a href="/department-videos">วิดีโอแนะนำแผนกวิชา</a><?= icon('chevron') ?><span><?= e($video['department']) ?></span></div>
 <section class="panel" data-guidance-video="<?= $id ?>" data-mode="<?= e($mode) ?>" data-active="<?= (int)$video['active'] ?>">
 <span class="pill"><?= e($video['department']) ?></span><h1><?= e($video['title']) ?></h1><p>ดูได้ทันทีโดยไม่ต้องสมัครสมาชิก</p>
 <?php if(!$video['active']): ?><p class="notice">ตัวอย่างสำหรับผู้ดูแล · ยังไม่เผยแพร่ จึงยังรับเกียรติบัตรไม่ได้</p><?php endif; ?>

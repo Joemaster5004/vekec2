@@ -8,7 +8,8 @@ final class Router {
         if($path==='/health'){DB::one('SELECT 1');header('Content-Type: application/json');echo '{"status":"ok"}';return;}
         if($method==='POST'){(new Actions())->dispatch($path);return;}
         if($method!=='GET')abort(405,'ไม่รองรับวิธีเรียกใช้งานนี้');
-        if($path==='/'){
+        if(in_array($path,['/','/courses'],true)){
+            $homeSections=Homepage::sections();
             $q=is_string($_GET['q']??null)?trim($_GET['q']):'';$category=is_string($_GET['category']??null)?$_GET['category']:'';$level=is_string($_GET['level']??null)?$_GET['level']:'';
             $where="c.status='published'";$params=[];
             if($q!==''){$where.=' AND (c.title LIKE ? OR c.code LIKE ? OR c.description LIKE ?)';$params=array_merge($params,array_fill(0,3,'%'.$q.'%'));}
@@ -16,7 +17,7 @@ final class Router {
             if(in_array($level,['voc1','voc2','public'],true)){$where.=" AND c.level IN ('all',?)";$params[]=$level;}
             $courses=DB::all("SELECT c.*,u.name AS teacher_name,(SELECT COUNT(*) FROM lessons l WHERE l.course_id=c.id) AS lesson_count FROM courses c JOIN users u ON u.id=c.teacher_id WHERE $where ORDER BY c.id DESC LIMIT 100",$params);
             $categories=DB::all('SELECT name AS category FROM categories ORDER BY name,id');
-            view('catalog',array_merge(compact('courses','categories','q','category','level'),Catalog::featured()));return;
+            view($path==='/'?'catalog':'course-catalog',array_merge(compact('courses','categories','q','category','level','homeSections'),$path==='/'?Catalog::featured():[]));return;
         }
         if(in_array($path,['/login','/register'],true)){if(Auth::user())redirect('/dashboard');view('auth',['register'=>$path==='/register']);return;}
         if($path==='/auth/thaid'){(new ThaID())->start();return;}
@@ -25,6 +26,11 @@ final class Router {
             $course=Learning::course((int)$m[1]);$user=Auth::user();
             if($course['status']!=='published' && !($user && ($user['role']==='admin'||(int)$course['teacher_id']===(int)$user['id']||Learning::enrolled((int)$user['id'],(int)$course['id']))))abort(404,'ไม่พบรายวิชา');
             $lessons=Learning::lessons((int)$course['id'],(int)($user['id']??0));view('course',compact('course','lessons'));return;
+        }
+        if($path==='/admin/homepage'){Auth::require(['admin']);view('homepage-settings',['sections'=>Homepage::sections()]);return;}
+        if($path==='/department-videos'){
+            $pagination=new Pagination((int)DB::one('SELECT COUNT(*) AS total FROM department_videos WHERE active=1')['total']);
+            view('department-videos',['departmentVideos'=>DepartmentVideo::all(true,null,$pagination),'pagination'=>$pagination]);return;
         }
         if($path==='/admin/department-videos'){Auth::require(['admin']);view('department-videos-admin',['videos'=>DepartmentVideo::all(),'categories'=>Category::options()]);return;}
         if(preg_match('#^/department-videos/(\d+)$#',$path,$m)){view('department-video',['video'=>DepartmentVideo::find((int)$m[1])]);return;}

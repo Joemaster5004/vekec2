@@ -4,7 +4,8 @@ $featuredSections = [
     ['id'=>'latest-courses','title'=>'รายวิชาใหม่ล่าสุด','eyebrow'=>'LATEST COURSES','description'=>'อัปเดตทักษะกับรายวิชาที่เพิ่มเข้ามาล่าสุด','courses'=>$latestCourses],
     ['id'=>'popular-courses','title'=>'รายวิชาที่มีผู้สนใจเรียนมากที่สุด','eyebrow'=>'TOP 3 COURSES','description'=>'3 อันดับแรก เรียงตามจำนวนผู้ลงทะเบียนเรียน','courses'=>$popularCourses],
 ];
-foreach ($featuredSections as $featuredSection): ?>
+foreach ($featuredSections as $featuredSection):
+    if(!($homeSections[str_replace('-','_',$featuredSection['id'])]??true))continue; ?>
 <section id="<?= $featuredSection['id'] ?>" class="featured-section" aria-labelledby="<?= $featuredSection['id'] ?>-title">
   <div class="section-heading">
     <div>
@@ -12,7 +13,7 @@ foreach ($featuredSections as $featuredSection): ?>
       <h2 id="<?= $featuredSection['id'] ?>-title"><?= $featuredSection['title'] ?></h2>
       <p><?= $featuredSection['description'] ?></p>
     </div>
-    <a class="featured-more" href="#courses">ดูรายวิชาทั้งหมด <?= icon('arrow') ?></a>
+    <a class="featured-more" href="<?= !empty($homeSections['course_catalog'])?'#courses':'/courses' ?>">ดูรายวิชาทั้งหมด <?= icon('arrow') ?></a>
   </div>
   <?php if (!$featuredSection['courses']): ?>
     <p class="featured-empty">ยังไม่มีรายวิชาที่เปิดรับสมัครในขณะนี้</p>

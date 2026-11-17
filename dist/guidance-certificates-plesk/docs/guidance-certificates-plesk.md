@@ -1,0 +1,44 @@
+# เกียรติบัตรแนะแนว: แม่แบบ ลายเซ็น และเลขที่
+
+## อัปเดตบน Plesk
+
+1. สำรองฐานข้อมูลและไฟล์ `storage` เดิม
+2. ใน phpMyAdmin เลือกฐานข้อมูล LMS แล้ว Import **`database/guidance-certificates.sql`** ไฟล์นี้สร้างตารางเพิ่ม 3 ตาราง ไม่มีคำสั่งลบหรือเปลี่ยนข้อมูลเกียรติบัตรเดิม และบันทึก migration `010_guidance_certificates` ให้ สามารถ Import ซ้ำได้
+3. อัปโหลดไฟล์ในแพ็กเกจขึ้นโฟลเดอร์โปรเจค โดยคงโครงสร้าง `app`, `views`, `public` และ `database` เดิม แพ็กเกจไม่รวม `app/bootstrap.php` หรือ `.env` จึงคงค่าฐานข้อมูลบนเซิร์ฟเวอร์ไว้
+4. เปิด **จัดการระบบ → ออกแบบเกียรติบัตรแนะแนว** (`/admin/guidance-certificate-design`)
+5. ตั้งค่าข้อความ กรอบ สี ตรา ชื่อ/ตำแหน่งผู้บริหาร ตำแหน่ง/ขนาดลายเซ็น และอัปโหลดลายเซ็น PNG/JPG/WebP สูงสุด 2 MB แล้วบันทึกแม่แบบ เมื่อยังไม่เคยบันทึกแบบแนะแนว ระบบนำตราและลายเซ็นจากเกียรติบัตรหลักมาเป็นค่าเริ่มต้น หลังบันทึกแล้วแบบแนะแนวแยกเป็นของตนเอง
+6. เปิด **เลขที่เกียรติบัตรแนะแนว** (`/admin/guidance-certificate-numbers`) เพิ่มคำนำหน้า ปี พ.ศ. เลขเริ่ม–สิ้นสุด และจำนวนหลัก แล้วกด **เปิดใช้ชุดนี้** เช่น `แนะแนว 0001/2569` เลขชุดแนะแนวแยกจากหลักสูตร ไม่มีช่วงเลขใช้งานจริงตั้งไว้ล่วงหน้า
+7. ทดสอบรับชม กรอกข้อมูล รับเกียรติบัตร และพิมพ์/บันทึก PDF ก่อนเปิดให้ใช้งานจริง
+
+ไม่ต้อง Import `database/schema.sql` ทั้งไฟล์ และไม่ต้องแก้ข้อมูลเชื่อมต่อฐานข้อมูล สำหรับระบบ Docker ใช้ `php bin/migrate.php` ตาม compose ที่ใช้งานแทนการ Import SQL ได้
+
+## พฤติกรรม
+
+- เฉพาะ admin จัดการแม่แบบ ภาพลายเซ็น ตรา และชุดเลขได้
+- เกียรติบัตรใหม่ใช้แม่แบบแนะแนวพร้อมเลขที่ที่จัดสรรใน transaction เดียวกัน เลขไม่ซ้ำและไม่ถูกใช้เมื่อบันทึกล้มเหลว
+- เมื่อไม่มีชุดเลขเปิดใช้หรือเลขหมด ระบบพักการออกใบใหม่ ผู้ชมสามารถกดรับอีกครั้งในเซสชันรับชมเดิมภายใน 24 ชั่วโมงหลังผู้ดูแลเปิดใช้เลขได้
+- ขอใบเดิมซ้ำไม่ใช้เลขเพิ่ม สามารถส่งออกทะเบียน CSV จากหน้าชุดเลขเพื่อเทียบทะเบียนได้
+- แม่แบบ ลายเซ็น ตรา ชื่อผู้รับ กิจกรรม และเลขที่ถูกบันทึก ณ วันออก เปลี่ยนแม่แบบหรือชุดเลขภายหลังไม่เปลี่ยนใบที่ออกแล้ว
+- ใบแนะแนวเดิมก่อนการอัปเดตยังคงรูปแบบเดิม ไม่มีการใส่เลขหรือลายเซ็นย้อนหลัง
+- หน้าดาวน์โหลดและภาพประกอบของใบที่ออกแล้วดูได้จากลิงก์สุ่มเดิมโดยไม่ต้องเข้าสู่ระบบ ไม่มีข้อมูลติดต่อหรือชื่อโรงเรียนอยู่ในใบ
+
+## ไฟล์ใช้งานที่อัปเดต
+
+- `app/Actions.php`, `app/Router.php`, `app/DepartmentVideo.php`
+- `app/CertificateDesign.php`, `app/CertificateNumbers.php`
+- `views/admin.php`, `views/layout-top.php`, `views/department-videos-admin.php`
+- `views/certificate-designer.php`, `views/certificate-preview.php`, `views/certificate-paper.php`, `views/certificate-numbers.php`
+- `views/guidance-certificate.php`, `views/guidance-certificate-legacy.php`
+- `public/index.php`, `public/assets/certificate-designer.js`
+- `database/guidance-certificates.sql`
+
+## ทดสอบในระบบแยก
+
+```sh
+docker compose -f compose.test.yaml exec -T web php bin/migrate.php
+docker compose -f compose.test.yaml exec -T web php tests/fixture.php
+docker compose -f compose.test.yaml exec -T web php tests/guidance_certificate_numbers.php
+python3 tests/guidance_certificate_http.py
+```
+
+ชุด HTTP ตรวจสิทธิ์/CSRF การแยกแม่แบบ ลายเซ็นและตรา การพิมพ์ เลขที่ การพัก/หมดชุดเลข การออกซ้ำ การรักษาใบเดิม และ CSV ส่วนชุด PHP ตรวจการจัดสรรเลขพร้อมกัน การ rollback และการสืบทอดลายเซ็นจากระบบหลัก

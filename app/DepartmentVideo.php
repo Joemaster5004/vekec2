@@ -3,9 +3,12 @@ declare(strict_types=1);
 namespace App;
 
 final class DepartmentVideo {
-    public static function all(bool $public = false): array {
+    public static function all(bool $public = false, ?int $limit=null, ?Pagination $pagination=null): array {
         try {
-            return DB::all('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id'.($public?' WHERE v.active=1':'').' ORDER BY v.id DESC');
+            $sql='SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id'.($public?' WHERE v.active=1':'').' ORDER BY v.id DESC';
+            if($pagination)return DB::all($sql.' LIMIT ? OFFSET ?',[$pagination->perPage,$pagination->offset]);
+            if($limit!==null)return DB::all($sql.' LIMIT ?',[max(1,min(100,$limit))]);
+            return DB::all($sql);
         } catch (\mysqli_sql_exception $error) {
             // An existing deployment may receive source before its database migration.
             // Keep the public catalog available only for missing-table errors.

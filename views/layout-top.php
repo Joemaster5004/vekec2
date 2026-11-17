@@ -47,7 +47,8 @@ require_once __DIR__ . '/icons.php';
         <aside id="sidebar" class="sidebar">
             <div class="sidebar-label">พื้นที่การเรียนรู้</div>
             <nav aria-label="เมนูหลัก">
-                <a href="/" class="nav-item <?= $current === '/' ? 'active' : '' ?>"><?= icon('compass') ?>ค้นพบรายวิชา<?php if ($current === '/'): ?><span class="nav-active-dot"></span><?php endif; ?></a>
+                <a href="/" class="nav-item <?= in_array($current,['/','/courses'],true) ? 'active' : '' ?>"><?= icon('compass') ?>ค้นพบรายวิชา<?php if ($current === '/'): ?><span class="nav-active-dot"></span><?php endif; ?></a>
+                <a href="/department-videos" class="nav-item <?= str_starts_with($current, '/department-videos') ? 'active' : '' ?>"><?= icon('play') ?>วิดีโอแนะนำแผนกวิชา</a>
                 <a href="/dashboard" class="nav-item <?= $current === '/dashboard' ? 'active' : '' ?>"><?= icon('book') ?>การเรียนรู้ของฉัน</a>
                 <a href="/certificates" class="nav-item <?= $current === '/certificates' ? 'active' : '' ?>"><?= icon('award') ?>ใบประกาศนียบัตร</a>
                 <?php if ($user && in_array($user['role'], ['teacher', 'admin'])): ?><div class="sidebar-label spaced">สำหรับครูผู้สอน</div><a href="/teach" class="nav-item <?= str_starts_with($current, '/teach') ? 'active' : '' ?>"><?= icon('layers') ?>จัดการรายวิชา</a><?php endif; ?>
@@ -58,11 +59,12 @@ require_once __DIR__ . '/icons.php';
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/ai-providers" class="nav-item <?= $current === '/admin/ai-providers' ? 'active' : '' ?>"><?= icon('spark') ?>ผู้ให้บริการ AI</a><?php endif; ?>
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/department-videos" class="nav-item <?= $current === '/admin/department-videos' ? 'active' : '' ?>"><?= icon('play') ?>วิดีโอแนะนำแผนกวิชา</a><?php endif; ?>
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/guidance-certificate-design" class="nav-item <?= str_starts_with($current, '/admin/guidance-certificate-design') ? 'active' : '' ?>"><?= icon('award') ?>ออกแบบเกียรติบัตรแนะแนว</a><a href="/admin/guidance-certificate-numbers" class="nav-item <?= str_starts_with($current, '/admin/guidance-certificate-numbers') ? 'active' : '' ?>"><?= icon('file') ?>เลขที่เกียรติบัตรแนะแนว</a><?php endif; ?>
+                <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/homepage" class="nav-item <?= $current === '/admin/homepage' ? 'active' : '' ?>"><?= icon('settings') ?>การแสดงผลหน้าแรก</a><?php endif; ?>
                 <div class="sidebar-label spaced">บัญชีของฉัน</div><a href="/profile" class="nav-item <?= $current === '/profile' ? 'active' : '' ?>"><?= icon('user') ?>ข้อมูลส่วนตัว</a>
             </nav>
             <div class="sidebar-bottom">
                 <div class="help-icon"><?= icon('spark') ?></div><strong>ทักษะเล็ก ๆ<br>สร้างโอกาสที่ยิ่งใหญ่</strong>
-                <p>เริ่มเรียนรู้ในแบบของคุณ<br>ได้ทุกที่ ทุกเวลา</p><a href="/#courses">สำรวจรายวิชา <?= icon('arrow') ?></a>
+                <p>เริ่มเรียนรู้ในแบบของคุณ<br>ได้ทุกที่ ทุกเวลา</p><a href="/courses">สำรวจรายวิชา <?= icon('arrow') ?></a>
             </div>
             <div class="sidebar-credit"><span class="status-dot"></span> LEARNING NEVER STOPS</div>
         </aside><button class="sidebar-scrim" aria-label="ปิดเมนู"></button>

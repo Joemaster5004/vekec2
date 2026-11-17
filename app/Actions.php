@@ -26,6 +26,7 @@ final class Actions {
         if($path==='/admin/department-videos'){DepartmentVideo::save();flash('เพิ่มวิดีโอแนะนำแผนกวิชาแล้ว');redirect('/admin/department-videos');}
         if(preg_match('#^/admin/department-videos/(\d+)/save$#',$path,$m)){DepartmentVideo::save((int)$m[1]);flash('บันทึกวิดีโอแล้ว');redirect('/admin/department-videos');}
         if(preg_match('#^/admin/department-videos/(\d+)/files/(\d+)/delete$#',$path,$m)){DepartmentVideo::removeFile((int)$m[1],(int)$m[2]);flash('ลบไฟล์แล้ว');redirect('/admin/department-videos');}
+        if($path==='/admin/homepage'){Homepage::save();flash('บันทึกการแสดงผลหน้าแรกแล้ว');redirect('/admin/homepage');}
         if($path==='/admin/banners'){
             Banner::save();flash('เพิ่ม Banner เรียบร้อยแล้ว');redirect('/admin/banners');
         }

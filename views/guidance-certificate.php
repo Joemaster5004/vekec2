@@ -9,5 +9,5 @@ else {
     $certificate['course_title']=$certificate['video_title'].' · '.$certificate['department_name'];$certificate['hours']=0;
     require __DIR__.'/certificate-paper.php';
 } ?>
-<p class="print-hide"><a class="text-link" href="/#department-videos">กลับไปชมวิดีโอแนะนำแผนกวิชา</a></p>
+<p class="print-hide"><a class="text-link" href="/department-videos">กลับไปชมวิดีโอแนะนำแผนกวิชา</a></p>
 <?php require __DIR__.'/layout-bottom.php'; ?>

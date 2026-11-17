@@ -1,5 +1,7 @@
 """Guidance design, signatures, registration and immutability; test server only."""
 import base64
+import csv
+import io
 import json
 import re
 import secrets
@@ -57,7 +59,7 @@ expect(admin.request('/admin/department-videos',video),303)
 page=expect(admin.request('/admin/department-videos'),200)
 vid=max(map(int,re.findall(r'id="department-video-(\d+)"',page)))
 path=f'/department-videos/{vid}'
-profile=dict(name='Guidance Recipient '+suffix,school='Private school',grade='M3',phone='0812345678',email='private@example.invalid',consent=1)
+profile=dict(name='Guidance Recipient '+suffix,school='โรงเรียนทดสอบ, \"เหนือ\"\nสาขา 1',grade='ม.3',phone='0812345678',email='private@example.invalid',consent=1)
 def watched_client():
     c=Client(); expect(c.request(path),200)
     state=json.loads(expect(c.request(path+'/start',{}),200))
@@ -83,7 +85,7 @@ expect(admin.request(number_path+'/activate',dict(range_id=0)),303)
 expect(second.request(path+'/certificate',profile),409)
 expect(first.request(path+'/certificate',profile),303)
 expect(admin.request(number_path+'/activate',dict(range_id=range_id)),303)
-expect(second.request(path+'/certificate',{**profile,'name':'Second recipient'}),303)
+expect(second.request(path+'/certificate',{**profile,'name':'Second recipient','school':'=1+1','grade':'@M6','phone':'+66812345678'}),303)
 second_url=second.location
 assert prefix+' 0702/2569' in expect(second.request(second_url),200)
 expect(third.request(path+'/certificate',profile),409)
@@ -98,7 +100,21 @@ expect(first.request(cert_url+'/signature'),200)
 expect(first.request(cert_url+'/emblem'),200)
 expect(guest.request('/guidance-certificate/'+'0'*32+'/signature'),404)
 register=expect(admin.request(number_path+'/export'),200)
-assert prefix+' 0701/2569' in register and prefix+' 0702/2569' in register and 'private@example.invalid' not in register
+assert prefix+' 0701/2569' in register and prefix+' 0702/2569' in register
+rows=list(csv.DictReader(io.StringIO(register.lstrip('\ufeff'))))
+first_row=next(row for row in rows if row['เลขทะเบียน']==prefix+' 0701/2569')
+assert list(first_row)==['เลขทะเบียน','ชื่อ–นามสกุล','สถานศึกษาที่ศึกษาอยู่','ระดับชั้น','เบอร์โทรศัพท์','อีเมล','กิจกรรมแนะแนว','แผนกวิชา','วันที่ออก','เลขอ้างอิง LMS']
+assert first_row['ชื่อ–นามสกุล']==profile['name']
+assert first_row['สถานศึกษาที่ศึกษาอยู่']==profile['school']
+assert first_row['ระดับชั้น']==profile['grade']
+assert first_row['เบอร์โทรศัพท์']==profile['phone']
+assert first_row['อีเมล']==profile['email']
+assert first_row['กิจกรรมแนะแนว']==video['title']
+assert len(first_row['เลขอ้างอิง LMS'])==32
+second_row=next(row for row in rows if row['เลขทะเบียน']==prefix+' 0702/2569')
+assert second_row['สถานศึกษาที่ศึกษาอยู่']=="'=1+1"
+assert second_row['ระดับชั้น']=="'@M6"
+assert second_row['เบอร์โทรศัพท์']=="'+66812345678"
 assert prefix not in expect(admin.request('/admin/certificate-numbers/export'),200)
 assert prefix not in expect(admin.request('/admin/certificate-numbers'),200)
 expect(admin.request(f'/admin/department-videos/{vid}/save',{**video,'active':0}),303)

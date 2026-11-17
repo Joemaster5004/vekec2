@@ -53,8 +53,8 @@ final class CertificateNumbers {
         header('Content-Disposition: attachment; filename="'.($guidance?'guidance-certificate-register':'certificate-register').'.csv"');
         $out=fopen('php://output','w');fwrite($out,"\xEF\xBB\xBF");
         if($guidance){
-            fputcsv($out,['เลขทะเบียน','ชื่อผู้รับ','กิจกรรมแนะแนว','แผนกวิชา','วันที่ออก','เลขอ้างอิง LMS']);
-            $result=DB::run('SELECT d.registration_number,c.recipient_name,c.video_title,c.department_name,c.issued_at,c.code FROM department_video_certificates c LEFT JOIN guidance_certificate_details d ON d.certificate_id=c.id ORDER BY c.id');
+            fputcsv($out,['เลขทะเบียน','ชื่อ–นามสกุล','สถานศึกษาที่ศึกษาอยู่','ระดับชั้น','เบอร์โทรศัพท์','อีเมล','กิจกรรมแนะแนว','แผนกวิชา','วันที่ออก','เลขอ้างอิง LMS']);
+            $result=DB::run('SELECT d.registration_number,c.recipient_name,c.school,c.grade,c.phone,c.email,c.video_title,c.department_name,c.issued_at,c.code FROM department_video_certificates c LEFT JOIN guidance_certificate_details d ON d.certificate_id=c.id ORDER BY c.id');
         }else{
         fputcsv($out,['เลขทะเบียน','ชื่อผู้รับ','รายวิชา','รหัสผู้เรียน','รหัสรายวิชา','วันที่ออก','เลขอ้างอิง LMS']);
         $result=DB::run('SELECT registration_number,recipient_name,course_title,user_id,course_id,issued_at,code FROM certificates ORDER BY id');
