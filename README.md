@@ -316,3 +316,14 @@ docker compose -f compose.test.yaml cp web:/tmp/department-clip.mp4 tests/.artif
 python3 tests/department_video_http.py
 node tests/department_video_dom.cjs
 ```
+
+### Error 500 หลังอัปเดต source วิดีโอแนะนำ
+
+ฐานข้อมูลเดิมไม่ได้สร้างตารางใหม่จาก `schema.sql` ซ้ำโดยอัตโนมัติ ต้องรัน `bin/migrate.php` บนเซิร์ฟเวอร์ด้วย PHP CLI และค่าการเชื่อมต่อฐานข้อมูลของระบบจริง สำหรับ `compose.production.yaml` ให้ build image ใหม่ก่อน เพราะไม่ได้ mount source จาก host:
+
+```sh
+docker compose -f compose.production.yaml up -d --build web
+docker compose -f compose.production.yaml exec -T web php bin/migrate.php
+```
+
+หลังแก้ไขนี้ เมื่อไม่มีตารางวิดีโอ หน้าแรกยังเปิดได้ ส่วนหน้าจัดการวิดีโอจะแจ้ง 503 พร้อมคำแนะนำให้อัปเดตฐานข้อมูล การเพิ่มวิดีโอต้องรัน migration ให้สำเร็จก่อน หากยังเกิด 500 ตรวจ `docker compose -f compose.production.yaml logs --tail=80 web` (หรือ PHP error log ของโฮสติ้ง) บันทึก log ระบุชนิดข้อผิดพลาด รหัส และตำแหน่งไฟล์ โดยไม่แสดงรายละเอียดฐานข้อมูลแก่ผู้เข้าชม

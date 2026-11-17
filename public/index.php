@@ -9,7 +9,7 @@ try {
     $status=$error instanceof App\HttpError ? ($error->getCode() ?: 400) : 500;
     http_response_code($status);
     $message=$status===500?'ระบบขัดข้องชั่วคราว กรุณาลองใหม่อีกครั้ง':$error->getMessage();
-    if($status===500)error_log(get_class($error).' at '.$error->getFile().':'.$error->getLine());
+    if($status===500)error_log(get_class($error).' code='.$error->getCode().($error instanceof mysqli_sql_exception?' sqlstate='.$error->getSqlState():'').' at '.$error->getFile().':'.$error->getLine());
     if(preg_match('#^/department-videos/\d+/(start|tick)(?:\?|$)#',$_SERVER['REQUEST_URI']??'')||str_starts_with($_SERVER['REQUEST_URI']??'','/api/')||preg_match('#^(?:/teach/\d+/images|/admin/certificate-design/emblem-preview)(?:\?|$)#',$_SERVER['REQUEST_URI']??'')){header('Content-Type: application/json; charset=utf-8');echo json_encode(['error'=>$message],JSON_UNESCAPED_UNICODE);}
     else {
         try {if(function_exists('App\\view')&&is_file(dirname(__DIR__).'/views/error.php'))App\view('error',compact('status','message'));else throw new RuntimeException('View unavailable');}

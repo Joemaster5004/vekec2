@@ -4,7 +4,16 @@ namespace App;
 
 final class DepartmentVideo {
     public static function all(bool $public = false): array {
-        return DB::all('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id'.($public?' WHERE v.active=1':'').' ORDER BY v.id DESC');
+        try {
+            return DB::all('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id'.($public?' WHERE v.active=1':'').' ORDER BY v.id DESC');
+        } catch (\mysqli_sql_exception $error) {
+            // An existing deployment may receive source before its database migration.
+            // Keep the public catalog available only for missing-table errors.
+            if ($error->getCode() !== 1146) throw $error;
+            error_log('Department guidance schema unavailable; run bin/migrate.php (009_department_videos).');
+            if ($public) return [];
+            abort(503, 'ฐานข้อมูลวิดีโอแนะนำยังไม่พร้อม กรุณาให้ผู้ดูแลเซิร์ฟเวอร์รัน php bin/migrate.php เพื่ออัปเดตฐานข้อมูล');
+        }
     }
     public static function find(int $id): array {
         $v=DB::one('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id WHERE v.id=?',[$id])??abort(404,'ไม่พบวิดีโอ');
