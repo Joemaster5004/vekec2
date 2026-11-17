@@ -296,3 +296,23 @@ Admin เปิด **จัดการระบบ → จัดการชุ
 
 ส่งออก CSV เพื่อเทียบกับงานทะเบียนได้จากหน้าเดียวกัน การจัดสรรเลขไม่ใช่สถานะรับรองฉบับจริงจากงานทะเบียน ฐานข้อมูลเดิมรัน `docker compose exec -T web php bin/migrate.php` (005_certificate_numbers) ก่อนใช้งาน และกำหนดชุดเลขจริงก่อนออกใบใหม่
 # vekec2
+
+### วิดีโอแนะนำแผนกวิชา (แนะแนวสาธารณะ)
+
+รัน `docker compose exec -T web php bin/migrate.php` เพื่อเพิ่ม migration `009_department_videos` แล้วเปิด **จัดการระบบ → วิดีโอแนะนำแผนกวิชา** (`/admin/department-videos`) ผู้ดูแลเท่านั้นเพิ่ม/แก้ไข/เผยแพร่/ซ่อนวิดีโอและลบไฟล์แนบได้ เลือกสาขาจากแผนกวิชาเดิม รองรับ URL HTTP(S) หรือ MP4 ไม่เกิน 256 MB และเอกสาร PDF/JPG/PNG ไม่เกิน 10 MB ต่อไฟล์ สูงสุด 10 ไฟล์ต่อการบันทึก พร้อมลิงก์รับสมัครเรียน
+
+หน้าแรกแสดงส่วนแนะนำก่อนรายวิชาใหม่ล่าสุด ดูและดาวน์โหลดเอกสารได้โดยไม่ต้องสมัครสมาชิก MP4 และ YouTube ติดตามตำแหน่งและเวลารับชมฝั่งเซิร์ฟเวอร์ สำหรับ URL ให้ตั้งความยาวจริงเป็นวินาที URL เว็บไซต์อื่นเปิดแท็บใหม่และใช้การยืนยันจากผู้ชมหลังเวลาขั้นต่ำ ระบบไม่สามารถตรวจการเล่นของเว็บไซต์ภายนอกเหล่านั้นได้
+
+เมื่อรับชมครบ กรอกชื่อ–นามสกุล สถานศึกษา ระดับชั้น โทรศัพท์ อีเมล และยินยอมจัดเก็บข้อมูลเพื่อออกเกียรติบัตร เกียรติบัตรแนะแนวแยกจากใบผ่านหลักสูตรและชุดเลขทะเบียนหลักสูตร ใช้เลขอ้างอิงสุ่มและข้อมูล ณ วันออก เปิดพิมพ์/บันทึก PDF ได้จากเบราว์เซอร์ ลิงก์เกียรติบัตรแชร์ได้และแสดงเฉพาะชื่อกับกิจกรรม ข้อมูลติดต่อดูได้เฉพาะผู้ดูแลที่ท้ายหน้าจัดการวิดีโอ การส่งซ้ำในเซสชันรับชมเดิมไม่ออกใบใหม่ เซสชันรับชมมีอายุ 24 ชั่วโมง การแก้ไขวิดีโอทำให้ต้องเริ่มรับชมใหม่ แต่ไม่เปลี่ยนใบที่ออกแล้ว
+
+ทดสอบในระบบแยก: `docker compose -f compose.test.yaml exec -T web php bin/migrate.php`, `docker compose -f compose.test.yaml exec -T web php tests/fixture.php`, `python3 tests/department_video_http.py`
+
+ก่อนรันทดสอบ HTTP ครั้งแรก สร้างคลิปตัวอย่างในระบบทดสอบ:
+
+```sh
+mkdir -p tests/.artifacts
+docker compose -f compose.test.yaml exec -T web ffmpeg -hide_banner -loglevel error -y -f lavfi -i color=c=black:size=320x180:rate=24 -t 8 -c:v libx264 -pix_fmt yuv420p /tmp/department-clip.mp4
+docker compose -f compose.test.yaml cp web:/tmp/department-clip.mp4 tests/.artifacts/department-clip.mp4
+python3 tests/department_video_http.py
+node tests/department_video_dom.cjs
+```

@@ -26,6 +26,17 @@ final class Router {
             if($course['status']!=='published' && !($user && ($user['role']==='admin'||(int)$course['teacher_id']===(int)$user['id']||Learning::enrolled((int)$user['id'],(int)$course['id']))))abort(404,'ไม่พบรายวิชา');
             $lessons=Learning::lessons((int)$course['id'],(int)($user['id']??0));view('course',compact('course','lessons'));return;
         }
+        if($path==='/admin/department-videos'){Auth::require(['admin']);view('department-videos-admin',['videos'=>DepartmentVideo::all(),'categories'=>Category::options()]);return;}
+        if(preg_match('#^/department-videos/(\d+)$#',$path,$m)){view('department-video',['video'=>DepartmentVideo::find((int)$m[1])]);return;}
+        if(preg_match('#^/department-videos/(\d+)/media(?:/(\d+))?$#',$path,$m)){
+            $v=DepartmentVideo::find((int)$m[1]);
+            $name=isset($m[2])?(DB::one('SELECT path FROM department_video_files WHERE video_id=? AND id=?',[$v['id'],$m[2]])['path']??null):$v['media_path'];
+            if(!$name)abort(404,'ไม่พบไฟล์');Upload::stream($name,!isset($m[2]));
+        }
+        if(preg_match('#^/guidance-certificate/([a-f0-9]{32})$#',$path,$m)){
+            $certificate=DB::one('SELECT * FROM department_video_certificates WHERE code=?',[$m[1]])??abort(404,'ไม่พบเกียรติบัตร');
+            view('guidance-certificate',compact('certificate'));return;
+        }
         if($path==='/dashboard'){Auth::require();view('dashboard');return;}
         if($path==='/certificates'){Auth::require();view('certificates');return;}
         if(preg_match('#^/(certificate|verify)/([a-f0-9]{32})/(signature|emblem)$#',$path,$m))CertificateDesign::streamImage($m[3],$m[2],$m[1]==='verify');

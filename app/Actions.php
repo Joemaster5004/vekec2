@@ -16,9 +16,16 @@ final class Actions {
         if($path==='/logout'){
             $_SESSION=[];session_destroy();setcookie(session_name(),'', ['expires'=>time()-3600,'path'=>'/','secure'=>str_starts_with(env('APP_URL'),'https://'),'httponly'=>true,'samesite'=>'Lax']);redirect('/');
         }
+        if(preg_match('#^/department-videos/(\d+)/(start|tick|certificate)$#',$path,$m)){
+            if($m[2]==='certificate')redirect('/guidance-certificate/'.DepartmentVideo::issue((int)$m[1]));
+            $this->json(DepartmentVideo::watch((int)$m[1],$m[2]));
+        }
         $user=Auth::require();$uid=(int)$user['id'];
         if($path==='/admin/certificate-numbers'){CertificateNumbers::create();flash('บันทึกช่วงเลขแล้ว กรุณาเลือกเปิดใช้งานชุดเลข');redirect('/admin/certificate-numbers');}
         if($path==='/admin/certificate-numbers/activate'){Auth::require(['admin']);CertificateNumbers::activate(integer('range_id',0,PHP_INT_MAX,0));flash('เปลี่ยนชุดเลขที่ใช้งานแล้ว');redirect('/admin/certificate-numbers');}
+        if($path==='/admin/department-videos'){DepartmentVideo::save();flash('เพิ่มวิดีโอแนะนำแผนกวิชาแล้ว');redirect('/admin/department-videos');}
+        if(preg_match('#^/admin/department-videos/(\d+)/save$#',$path,$m)){DepartmentVideo::save((int)$m[1]);flash('บันทึกวิดีโอแล้ว');redirect('/admin/department-videos');}
+        if(preg_match('#^/admin/department-videos/(\d+)/files/(\d+)/delete$#',$path,$m)){DepartmentVideo::removeFile((int)$m[1],(int)$m[2]);flash('ลบไฟล์แล้ว');redirect('/admin/department-videos');}
         if($path==='/admin/banners'){
             Banner::save();flash('เพิ่ม Banner เรียบร้อยแล้ว');redirect('/admin/banners');
         }

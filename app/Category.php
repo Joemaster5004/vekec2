@@ -58,6 +58,7 @@ final class Category {
             $categories = array_column($rows, null, 'id');
             $source = $categories[$id] ?? abort(404, 'ไม่พบหมวดหมู่');
             if ($replacementId && !isset($categories[$replacementId])) abort(422, 'ไม่พบหมวดหมู่ปลายทาง กรุณาเลือกรายการใหม่');
+            if(DB::one('SELECT id FROM department_videos WHERE category_id=? LIMIT 1',[$id])) abort(409, 'กรุณาย้ายวิดีโอแนะนำไปแผนกอื่นก่อนลบแผนกวิชานี้');
             $count = (int)DB::one('SELECT COUNT(*) AS total FROM courses WHERE category=?', [$source['name']])['total'];
             if ($count && !$replacementId) abort(409, 'หมวดหมู่นี้มีรายวิชาอยู่ กรุณาเลือกหมวดหมู่ปลายทางก่อนลบ');
             if ($count) {

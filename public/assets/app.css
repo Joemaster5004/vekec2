@@ -47,3 +47,14 @@
 [data-banner-form] input{min-width:0;max-width:100%}
 .banner-delete{margin-top:16px}
 @media(max-width:600px){.banner-carousel{border-radius:12px}.banner-controls{gap:6px;padding:8px}}
+
+.guidance-card { display:flex; flex-direction:column; gap:16px; min-width:0; }
+.guidance-card .pill { align-self:flex-start; }
+.guidance-card h3,.guidance-card p { margin:0; overflow-wrap:anywhere; }
+.guidance-card p { color:var(--muted,#77857f); white-space:pre-line; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.guidance-card .button { margin-top:auto; }
+.guidance-card-art { background:linear-gradient(125deg,#194e43,#287b68); border-radius:14px; min-height:130px; display:flex; align-items:center; justify-content:center; gap:18px; color:white; }
+.guidance-card-art svg { width:42px; height:42px; }
+.guidance-description { overflow-wrap:anywhere; }
+#guidance-registration { border-top:1px solid #dce5df; margin-top:32px; padding-top:24px; }
+[data-guidance-video] video { width:100%; }

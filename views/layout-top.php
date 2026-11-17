@@ -56,6 +56,7 @@ require_once __DIR__ . '/icons.php';
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/categories" class="nav-item <?= $current === '/admin/categories' ? 'active' : '' ?>"><?= icon('layers') ?>จัดการหมวดหมู่</a><?php endif; ?>
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/certificate-design" class="nav-item <?= str_starts_with($current, '/admin/certificate-design') ? 'active' : '' ?>"><?= icon('award') ?>ออกแบบเกียรติบัตร</a><?php endif; ?>
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/ai-providers" class="nav-item <?= $current === '/admin/ai-providers' ? 'active' : '' ?>"><?= icon('spark') ?>ผู้ให้บริการ AI</a><?php endif; ?>
+                <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/department-videos" class="nav-item <?= $current === '/admin/department-videos' ? 'active' : '' ?>"><?= icon('play') ?>วิดีโอแนะนำแผนกวิชา</a><?php endif; ?>
                 <div class="sidebar-label spaced">บัญชีของฉัน</div><a href="/profile" class="nav-item <?= $current === '/profile' ? 'active' : '' ?>"><?= icon('user') ?>ข้อมูลส่วนตัว</a>
             </nav>
             <div class="sidebar-bottom">

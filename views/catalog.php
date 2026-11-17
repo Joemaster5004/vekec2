@@ -2,6 +2,7 @@
 <div class="breadcrumb">พื้นที่การเรียนรู้ <?= icon('chevron') ?> <span>ค้นพบรายวิชา</span></div>
 <?php require __DIR__.'/banner-carousel.php'; ?>
 <section class="benefit-strip" aria-label="รูปแบบการเรียนรู้"><div><?= icon('school') ?><span><strong>เพื่อผู้เรียนทุกช่วงวัย</strong><small>ปวช. · ปวส. · ประชาชนทั่วไป</small></span></div><div><?= icon('play') ?><span><strong>เรียนตามจังหวะของคุณ</strong><small>วิดีโอ บทเรียน และกิจกรรมฝึกทักษะ</small></span></div><div><?= icon('award') ?><span><strong>ทุกการเรียนรู้มีความหมาย</strong><small>ติดตามความก้าวหน้าและเก็บความสำเร็จ</small></span></div></section>
+<?php require __DIR__.'/department-videos-section.php'; ?>
 <?php require __DIR__.'/featured-courses.php'; ?>
 <section id="courses" class="catalog-section"><div class="section-heading"><div><div class="eyebrow dark">EXPLORE YOUR POSSIBILITIES</div><h2>ค้นพบรายวิชาที่ใช่สำหรับคุณ</h2><p>เริ่มต้นความสนใจใหม่ หรือต่อยอดทักษะที่มีอยู่</p></div><span class="count-label"><?= count($courses) ?> รายวิชา<?= count($courses)===100?'แรก':'' ?></span></div>
 <form method="get" action="/#courses" class="filter-bar catalog-filters">

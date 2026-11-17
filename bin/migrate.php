@@ -143,6 +143,12 @@ try {
         DB::run('INSERT INTO schema_migrations(version) VALUES(?)',[$version]);
         echo "Applied teacher AI generation drafts.\n";
     }
+    $version='009_department_videos';
+    if(!DB::one('SELECT version FROM schema_migrations WHERE version=?',[$version])) {
+        foreach(explode(';',file_get_contents(dirname(__DIR__).'/database/department-videos.sql')) as $sql)if(trim($sql)!=='')DB::run($sql);
+        DB::run('INSERT INTO schema_migrations(version) VALUES(?)',[$version]);
+        echo "Applied public department introduction videos.\n";
+    }
     echo "Schema is up to date.\n";
 } finally {
     DB::one("SELECT RELEASE_LOCK('vekec_schema_migrations')");
