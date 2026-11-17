@@ -142,7 +142,7 @@
     loadingEmblem = true; emblemError.hidden = true; emblemStatus.hidden = false;
     emblemStatus.textContent = 'กำลังโหลดภาพตรา…'; update();
     try {
-      const response = await fetch('/admin/certificate-design/emblem-preview', {method: 'POST', body: payload, signal: remoteRequest.signal});
+      const response = await fetch(form.dataset.emblemPreview || '/admin/certificate-design/emblem-preview', {method: 'POST', body: payload, signal: remoteRequest.signal});
       const result = await response.json();
       if (version !== remoteVersion) return;
       if (!response.ok) throw new Error(result.error || 'โหลดรูปภาพไม่สำเร็จ');

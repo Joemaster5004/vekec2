@@ -14,6 +14,16 @@ DB::transaction(function(){
         DB::run('UPDATE certificate_numbering SET range_id=? WHERE id=1',[$range['id']]);
     }
 
+    $guidanceNumbering=DB::one('SELECT range_id FROM guidance_certificate_numbering WHERE id=1 FOR UPDATE');
+    if(!$guidanceNumbering['range_id']||!DB::one('SELECT id FROM guidance_certificate_number_ranges WHERE id=? AND next_number<=end_number',[$guidanceNumbering['range_id']])) {
+        $range=DB::one("SELECT id FROM guidance_certificate_number_ranges WHERE prefix='GUIDANCE-TEST-FIXTURE' AND year=2569");
+        if(!$range){
+            DB::run("INSERT INTO guidance_certificate_number_ranges(prefix,year,start_number,end_number,next_number,digits) VALUES('GUIDANCE-TEST-FIXTURE',2569,1,999999,1,6)");
+            $range=['id'=>DB::id()];
+        }
+        DB::run('UPDATE guidance_certificate_numbering SET range_id=? WHERE id=1',[$range['id']]);
+    }
+
     DB::run("INSERT IGNORE INTO categories(name) VALUES('ทดสอบระบบ')");
     foreach(['admin','teacher','otherteacher'] as $role){
         DB::run('INSERT IGNORE INTO users(name,email,password_hash,role) VALUES(?,?,?,?)',['Test '.$role,$role.'@example.invalid',password_hash('TestOnlyPassword!2026',PASSWORD_DEFAULT),$role==='otherteacher'?'teacher':$role]);

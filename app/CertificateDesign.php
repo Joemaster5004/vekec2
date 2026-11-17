@@ -16,7 +16,7 @@ final class CertificateDesign {
     ];
 
     private static function settings(bool $lock = false): array {
-        return array_column(DB::all("SELECT setting_key,setting_value FROM settings WHERE setting_key IN ('certificate_design','institution','signatory') ORDER BY setting_key".($lock?' FOR SHARE':'')), 'setting_value', 'setting_key');
+        return array_column(DB::all("SELECT setting_key,setting_value FROM settings WHERE setting_key IN ('certificate_design','guidance_certificate_design','institution','signatory') ORDER BY setting_key".($lock?' LOCK IN SHARE MODE':'')), 'setting_value', 'setting_key');
     }
 
     private static function defaults(array $settings): array {
@@ -33,20 +33,29 @@ final class CertificateDesign {
         ];
     }
 
-    public static function current(): array {
-        $settings = self::settings();
-        $stored = isset($settings['certificate_design']) ? json_decode($settings['certificate_design'], true, 16, JSON_THROW_ON_ERROR) : [];
-        return array_replace(self::defaults($settings), $stored);
+    private static function resolve(array $settings, bool $guidance): array {
+        $stored=isset($settings['certificate_design'])?json_decode($settings['certificate_design'],true,16,JSON_THROW_ON_ERROR):[];
+        $design=array_replace(self::defaults($settings),$stored);
+        if(!$guidance)return $design;
+        $guidanceStored=isset($settings['guidance_certificate_design'])?json_decode($settings['guidance_certificate_design'],true,16,JSON_THROW_ON_ERROR):[];
+        // Start with the college's existing seal and administrator signature.
+        return array_replace($design,[
+            'subtitle'=>'CERTIFICATE OF PARTICIPATION',
+            'completion'=>'ได้เข้าร่วมรับชมวิดีโอแนะแนวการศึกษา', 'show_hours'=>false,
+        ],$guidanceStored);
     }
 
-    public static function issuance(): array {
-        // Called inside the issuance transaction; read one consistent template and identity.
-        $settings = self::settings(true);
-        $design = isset($settings['certificate_design']) ? json_decode($settings['certificate_design'], true, 16, JSON_THROW_ON_ERROR) : null;
+    public static function current(bool $guidance=false): array {
+        return self::resolve(self::settings(),$guidance);
+    }
+
+    public static function issuance(bool $guidance=false): array {
+        $settings=self::settings(true);
+        $design=$guidance?self::resolve($settings,true):(isset($settings['certificate_design'])?self::resolve($settings,false):null);
         return [
-            'institution'=>$design['institution'] ?? $settings['institution'] ?? '',
-            'signatory'=>$design['director_name'] ?? $settings['signatory'] ?? '',
-            'design_snapshot'=>$design === null ? null : json_encode($design, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+            'institution'=>$design['institution']??$settings['institution']??'',
+            'signatory'=>$design['director_name']??$settings['signatory']??'',
+            'design_snapshot'=>$design===null?null:json_encode($design,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),
         ];
     }
 
@@ -83,9 +92,10 @@ final class CertificateDesign {
         ];
     }
 
-    public static function save(array $data): void {
+    public static function save(array $data, bool $guidance=false): void {
         Auth::require(['admin']);
         $values = self::validate($data);
+        if($guidance)$values['show_hours']=false;
         $hasFile = isset($_FILES['signature']) && ($_FILES['signature']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE;
         if ($hasFile && isset($data['remove_signature'])) abort(422, 'กรุณาเลือกอัปโหลดลายเซ็นใหม่หรือนำลายเซ็นออกอย่างใดอย่างหนึ่ง');
         $emblemSource = $data['emblem_source'] ?? 'keep';
@@ -100,22 +110,22 @@ final class CertificateDesign {
                 if (!is_string($url)) abort(422, 'URL รูปภาพไม่ถูกต้อง');
                 $emblem = CertificateImage::store(CertificateImage::download(trim($url)));
             }
-            DB::transaction(function () use ($values, $data, $uploaded, $emblem, $emblemSource): void {
+            DB::transaction(function () use ($values, $data, $uploaded, $emblem, $emblemSource, $guidance): void {
                 // These permanent rows also serialize the first template save before its JSON row exists.
-                DB::all("SELECT setting_key FROM settings WHERE setting_key IN ('certificate_design','institution','signatory') ORDER BY setting_key FOR UPDATE");
-                $previous = self::current();
+                DB::all("SELECT setting_key FROM settings WHERE setting_key IN ('certificate_design','guidance_certificate_design','institution','signatory') ORDER BY setting_key FOR UPDATE");
+                $previous = self::current($guidance);
                 $values['signature_path'] = isset($data['remove_signature']) ? null : ($uploaded ?? $previous['signature_path']);
                 $values['emblem_path'] = $emblemSource === 'default' ? null : ($emblem ?? $previous['emblem_path']);
                 $values['emblem_size'] = $values['emblem_size'] ?? $previous['emblem_size'];
-                foreach ([
-                    'certificate_design'=>json_encode($values, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-                    'institution'=>$values['institution'], 'signatory'=>$values['director_name'],
-                ] as $key=>$value) DB::run('INSERT INTO settings(setting_key,setting_value) VALUES(?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)', [$key, $value]);
-                audit('certificate.design_saved', 'template');
-                if ($uploaded) audit('certificate.signature_uploaded', $uploaded);
-                if (isset($data['remove_signature']) && $previous['signature_path']) audit('certificate.signature_removed', 'template');
-                if ($emblem) audit('certificate.emblem_uploaded', $emblem);
-                if ($emblemSource === 'default' && $previous['emblem_path']) audit('certificate.emblem_removed', 'template');
+                $updates=[($guidance?'guidance_certificate_design':'certificate_design')=>json_encode($values,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR)];
+                if(!$guidance)$updates+=['institution'=>$values['institution'],'signatory'=>$values['director_name']];
+                foreach($updates as $key=>$value)DB::run('INSERT INTO settings(setting_key,setting_value) VALUES(?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)',[$key,$value]);
+                $auditPrefix=$guidance?'guidance_certificate.':'certificate.';
+                audit($auditPrefix.'design_saved', 'template');
+                if ($uploaded) audit($auditPrefix.'signature_uploaded', $uploaded);
+                if (isset($data['remove_signature']) && $previous['signature_path']) audit($auditPrefix.'signature_removed', 'template');
+                if ($emblem) audit($auditPrefix.'emblem_uploaded', $emblem);
+                if ($emblemSource === 'default' && $previous['emblem_path']) audit($auditPrefix.'emblem_removed', 'template');
             });
         } catch (\Throwable $error) {
             if ($uploaded && is_file(Upload::path($uploaded))) unlink(Upload::path($uploaded));
@@ -129,13 +139,13 @@ final class CertificateDesign {
         self::streamImage('signature', $code, $public);
     }
 
-    public static function streamImage(string $kind, ?string $code = null, bool $public = false): never {
+    public static function streamImage(string $kind, ?string $code = null, bool $public = false, bool $guidance=false): never {
         if (!in_array($kind, ['signature','emblem'], true)) abort(404, 'ไม่พบรูปภาพ');
         if ($code === null) {
             Auth::require(['admin']);
-            $design = self::current();
+            $design = self::current($guidance);
         } else {
-            $certificate = DB::one('SELECT * FROM certificates WHERE code=?', [$code]) ?? abort(404, 'ไม่พบเกียรติบัตร');
+            $certificate = $guidance?DepartmentVideo::certificate($code):(DB::one('SELECT * FROM certificates WHERE code=?', [$code]) ?? abort(404, 'ไม่พบเกียรติบัตร'));
             if (!$public) {
                 $user = Auth::require();
                 if ((int)$user['id'] !== (int)$certificate['user_id'] && $user['role'] !== 'admin') abort(403, 'ไม่มีสิทธิ์เข้าถึงเกียรติบัตรนี้');
@@ -147,10 +157,10 @@ final class CertificateDesign {
         Upload::stream($name, true);
     }
 
-    public static function preview(array $design): array {
+    public static function preview(array $design, bool $guidance=false): array {
         return [
             'recipient_name'=>'ชื่อ–นามสกุลผู้รับเกียรติบัตร',
-            'course_title'=>'ตัวอย่างหลักสูตรการพัฒนาทักษะอาชีพ', 'hours'=>12,
+            'course_title'=>$guidance?'ตัวอย่างวิดีโอแนะนำแผนกวิชา':'ตัวอย่างหลักสูตรการพัฒนาทักษะอาชีพ', 'hours'=>$guidance?0:12,
             'issued_at'=>date('Y-m-d H:i:s'), 'code'=>'PREVIEW',
             'institution'=>$design['institution'], 'signatory'=>$design['director_name'],
             'design_snapshot'=>json_encode($design, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),

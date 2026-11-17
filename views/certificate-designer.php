@@ -1,19 +1,21 @@
 <?php
 use App\CertificateDesign;
 use function App\{e,csrfField};
-$title='ออกแบบเกียรติบัตร';$certificateAssets=true;$certificateDesigner=true;
+$guidance=$guidance??false;$designBase=$guidance?'/admin/guidance-certificate-design':'/admin/certificate-design';
+$title=$guidance?'ออกแบบเกียรติบัตรแนะแนว':'ออกแบบเกียรติบัตร';$certificateAssets=true;$certificateDesigner=true;
 require __DIR__.'/layout-top.php';
 $values=$values??$design;
 $value=static fn(string $key): string => is_scalar($values[$key]??null)?(string)$values[$key]:'';
 $emblemSource=$value('emblem_source')?:'keep';
 $emblemSize=is_numeric($values['emblem_size']??null)?max(3,min(12,(float)$values['emblem_size'])):$design['emblem_size'];
-$certificate=CertificateDesign::preview($design);$isPreview=true;
+$certificate=CertificateDesign::preview($design,$guidance);$isPreview=true;
 ?>
-<div class="breadcrumb"><a href="/admin">จัดการระบบ</a><?= icon('chevron') ?><span>ออกแบบเกียรติบัตร</span></div>
-<div class="page-heading"><div><div class="eyebrow dark">CERTIFICATE DESIGN</div><h1>ออกแบบเกียรติบัตร</h1><p>ออกแบบแม่แบบ ใส่ลายเซ็น และกำหนดผู้ลงนามรับรอง</p></div><a href="/admin/certificate-design/preview" target="_blank" rel="noopener" class="button outline"><?= icon('file') ?>ดูแบบที่บันทึก / พิมพ์</a></div>
+<div class="breadcrumb"><a href="/admin">จัดการระบบ</a><?= icon('chevron') ?><span><?= e($title) ?></span></div>
+<div class="page-heading"><div><div class="eyebrow dark">CERTIFICATE DESIGN</div><h1><?= e($title) ?></h1><p>ออกแบบแม่แบบ ใส่ลายเซ็น และกำหนดผู้ลงนามรับรอง</p></div><a href="<?= e($designBase) ?>/preview" target="_blank" rel="noopener" class="button outline"><?= icon('file') ?>ดูแบบที่บันทึก / พิมพ์</a></div>
 <?php if (!empty($error)): ?><div class="member-error" role="alert"><?= e($error) ?> · ยังไม่ได้บันทึกการเปลี่ยนแปลง<?php if(!empty($_FILES['signature']['name'])||!empty($_FILES['emblem']['name'])): ?> กรุณาเลือกไฟล์ภาพอีกครั้ง<?php endif; ?></div><?php endif; ?>
+<?php if($guidance): ?><p class="notice">แม่แบบสำหรับกิจกรรมแนะแนว แยกจากเกียรติบัตรหลัก · แบบเริ่มต้นนำตราและลายเซ็นจากระบบหลักมาใช้ คุณสามารถแก้ไขหรืออัปโหลดลายเซ็นสำหรับงานแนะแนวได้</p><p><a class="button outline" href="/admin/guidance-certificate-numbers">กำหนดเลขที่เกียรติบัตรแนะแนว</a></p><?php endif; ?>
 <div class="certificate-designer">
-    <form method="post" action="/admin/certificate-design" enctype="multipart/form-data" id="certificate-design-form" class="cert-design-controls">
+    <form method="post" action="<?= e($designBase) ?>" data-emblem-preview="<?= e($designBase) ?>/emblem-preview" enctype="multipart/form-data" id="certificate-design-form" class="cert-design-controls">
         <?= csrfField() ?><input type="hidden" name="MAX_FILE_SIZE" value="2097152">
         <section class="panel">
             <h2>รูปแบบและสี</h2>
@@ -36,8 +38,8 @@ $certificate=CertificateDesign::preview($design);$isPreview=true;
             <?php foreach(['institution','heading','subtitle','intro','completion'] as $key): [$max,$label]=CertificateDesign::TEXT_FIELDS[$key]; ?>
                 <label for="cert-<?= $key ?>"><?= e($label) ?><?= $key==='subtitle'?' (ไม่บังคับ)':'' ?><input id="cert-<?= $key ?>" name="<?= $key ?>" maxlength="<?= $max ?>" value="<?= e($value($key)) ?>" <?= $key==='subtitle'?'':'required' ?>></label>
             <?php endforeach; ?>
-            <label class="check-label"><input type="checkbox" name="show_hours" value="1" <?= !empty($values['show_hours'])?'checked':'' ?>>แสดงจำนวนชั่วโมงเรียน</label>
-            <p class="form-hint">ชื่อผู้รับ ชื่อหลักสูตร วันที่ และเลขอ้างอิง จะใช้ข้อมูลจริงเมื่อออกเกียรติบัตร</p>
+            <label class="check-label" <?= $guidance?'hidden':'' ?>><input <?= $guidance?'disabled':'' ?> type="checkbox" name="show_hours" value="1" <?= !empty($values['show_hours'])?'checked':'' ?>>แสดงจำนวนชั่วโมงเรียน</label>
+            <p class="form-hint">ชื่อผู้รับ <?= $guidance?'ชื่อกิจกรรมแนะแนว':'ชื่อหลักสูตร' ?> วันที่ และเลขอ้างอิง จะใช้ข้อมูลจริงเมื่อออกเกียรติบัตร</p>
         </div></section>
         <section class="panel"><h2>ลายเซ็นและผู้อำนวยการ</h2><div class="form-stack">
             <label for="cert-director_name">ชื่อ–นามสกุลผู้อำนวยการ<input id="cert-director_name" name="director_name" maxlength="120" value="<?= e($value('director_name')) ?>" placeholder="ระบุคำนำหน้า ชื่อ และนามสกุล" required></label>

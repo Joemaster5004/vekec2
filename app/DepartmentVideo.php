@@ -58,7 +58,7 @@ final class DepartmentVideo {
             DB::transaction(function()use($id,$title,$description,$category,$external,$application,$source,$active,$media,$duration,$attachments,&$obsolete){
                 $old=$id?DB::one('SELECT * FROM department_videos WHERE id=? FOR UPDATE',[$id]):null;
                 if($id&&!$old)abort(404,'ไม่พบวิดีโอ');
-                if(!DB::one('SELECT id FROM categories WHERE id=? FOR SHARE',[$category]))abort(422,'กรุณาเลือกแผนกวิชาในระบบ');
+                if(!DB::one('SELECT id FROM categories WHERE id=? LOCK IN SHARE MODE',[$category]))abort(422,'กรุณาเลือกแผนกวิชาในระบบ');
                 $path=$source==='upload'?($media??$old['media_path']??null):null;
                 if($source==='upload'&&!$path)abort(422,'กรุณาอัปโหลดไฟล์ MP4');
                 $seconds=$source==='upload'&&!$media?(int)$old['duration_seconds']:$duration;
@@ -108,6 +108,9 @@ final class DepartmentVideo {
         $_SESSION['department_watches'][$key]=$s;
         return ['position'=>$s['watched'],'completed'=>$s['done'],'reset'=>false];
     }
+    public static function certificate(string $code): array {
+        return DB::one('SELECT c.*,d.design_snapshot,d.registration_number,d.number_range_id,d.serial_number FROM department_video_certificates c LEFT JOIN guidance_certificate_details d ON d.certificate_id=c.id WHERE c.code=?',[$code])??abort(404,'ไม่พบเกียรติบัตร');
+    }
     public static function issue(int $id): string {
         Auth::limit('department_certificate',30,3600);
         $name=input('name',540);$school=input('school',960);$grade=input('grade',400);$phone=input('phone',40);$email=strtolower(input('email',190));
@@ -115,12 +118,16 @@ final class DepartmentVideo {
         if(!filter_var($email,FILTER_VALIDATE_EMAIL)||!preg_match('/^\+?[0-9 ()-]{8,40}$/',$phone)||strlen(preg_replace('/\D/','',$phone))<8)abort(422,'กรุณาตรวจสอบอีเมลและเบอร์โทรศัพท์');
         if(input('consent',1)!=='1')abort(422,'กรุณายินยอมให้จัดเก็บข้อมูลเพื่อออกเกียรติบัตร');
         return DB::transaction(function()use($id,$name,$school,$grade,$phone,$email){
-            $v=DB::one('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id WHERE v.id=? FOR SHARE',[$id])??abort(404,'ไม่พบวิดีโอ');
+            $v=DB::one('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id WHERE v.id=? LOCK IN SHARE MODE',[$id])??abort(404,'ไม่พบวิดีโอ');
             $s=$_SESSION['department_watches'][(string)$id]??null;
             if(!$v['active']||!$s||!$s['done']||$s['revision']!==(int)$v['revision']||time()-$s['started']>86400)abort(403,'กรุณารับชมวิดีโอจนจบก่อนรับเกียรติบัตร');
             $old=DB::one('SELECT code FROM department_video_certificates WHERE watch_code=?',[$s['token']]);if($old)return $old['code'];
+            [$rangeId,$serial,$registration]=CertificateNumbers::allocate(true);
+            $design=CertificateDesign::issuance(true);
             $code=bin2hex(random_bytes(16));
-            DB::run('INSERT INTO department_video_certificates(video_id,watch_code,code,recipient_name,school,grade,phone,email,video_title,department_name,institution,signatory) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',[$id,$s['token'],$code,$name,$school,$grade,$phone,$email,$v['title'],$v['department'],setting('institution','วิทยาลัยเทคนิคกำแพงเพชร'),setting('signatory','ผู้อำนวยการวิทยาลัยเทคนิคกำแพงเพชร')]);
+            DB::run('INSERT INTO department_video_certificates(video_id,watch_code,code,recipient_name,school,grade,phone,email,video_title,department_name,institution,signatory) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',[$id,$s['token'],$code,$name,$school,$grade,$phone,$email,$v['title'],$v['department'],$design['institution'],$design['signatory']]);
+            $certificateId=DB::id();
+            DB::run('INSERT INTO guidance_certificate_details(certificate_id,design_snapshot,registration_number,number_range_id,serial_number) VALUES(?,?,?,?,?)',[$certificateId,$design['design_snapshot'],$registration,$rangeId,$serial]);
             audit('department_certificate.issued',$code);return $code;
         });
     }

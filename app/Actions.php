@@ -21,8 +21,8 @@ final class Actions {
             $this->json(DepartmentVideo::watch((int)$m[1],$m[2]));
         }
         $user=Auth::require();$uid=(int)$user['id'];
-        if($path==='/admin/certificate-numbers'){CertificateNumbers::create();flash('บันทึกช่วงเลขแล้ว กรุณาเลือกเปิดใช้งานชุดเลข');redirect('/admin/certificate-numbers');}
-        if($path==='/admin/certificate-numbers/activate'){Auth::require(['admin']);CertificateNumbers::activate(integer('range_id',0,PHP_INT_MAX,0));flash('เปลี่ยนชุดเลขที่ใช้งานแล้ว');redirect('/admin/certificate-numbers');}
+        if(in_array($path,['/admin/certificate-numbers','/admin/guidance-certificate-numbers'],true)){CertificateNumbers::create($path==='/admin/guidance-certificate-numbers');flash('บันทึกช่วงเลขแล้ว กรุณาเลือกเปิดใช้งานชุดเลข');redirect($path);}
+        if(in_array($path,['/admin/certificate-numbers/activate','/admin/guidance-certificate-numbers/activate'],true)){Auth::require(['admin']);CertificateNumbers::activate(integer('range_id',0,PHP_INT_MAX,0),$path==='/admin/guidance-certificate-numbers/activate');flash('เปลี่ยนชุดเลขที่ใช้งานแล้ว');redirect(substr($path,0,-strlen('/activate')));}
         if($path==='/admin/department-videos'){DepartmentVideo::save();flash('เพิ่มวิดีโอแนะนำแผนกวิชาแล้ว');redirect('/admin/department-videos');}
         if(preg_match('#^/admin/department-videos/(\d+)/save$#',$path,$m)){DepartmentVideo::save((int)$m[1]);flash('บันทึกวิดีโอแล้ว');redirect('/admin/department-videos');}
         if(preg_match('#^/admin/department-videos/(\d+)/files/(\d+)/delete$#',$path,$m)){DepartmentVideo::removeFile((int)$m[1],(int)$m[2]);flash('ลบไฟล์แล้ว');redirect('/admin/department-videos');}
@@ -132,19 +132,19 @@ final class Actions {
             Auth::require(['admin']);$value=input('contact_email',190);if(!filter_var($value,FILTER_VALIDATE_EMAIL))abort(422,'รูปแบบอีเมลติดต่อไม่ถูกต้อง');DB::run("UPDATE settings SET setting_value=? WHERE setting_key='contact_email'",[$value]);
             DB::run("UPDATE settings SET setting_value=? WHERE setting_key='registration_open'",[isset($_POST['registration_open'])?'1':'0']);audit('settings.saved','system');flash('บันทึกการตั้งค่าแล้ว');redirect('/admin');
         }
-        if($path==='/admin/certificate-design/emblem-preview'){
+        if(in_array($path,['/admin/certificate-design/emblem-preview','/admin/guidance-certificate-design/emblem-preview'],true)){
             Auth::require(['admin']);$content=CertificateImage::download(input('emblem_url',2048));
             $mime=CertificateImage::inspect($content)['mime'];
             $this->json(['data_url'=>'data:'.$mime.';base64,'.base64_encode($content)]);
         }
-        if($path==='/admin/certificate-design'){
-            Auth::require(['admin']);
-            try {CertificateDesign::save($_POST);}
+        if(in_array($path,['/admin/certificate-design','/admin/guidance-certificate-design'],true)){
+            Auth::require(['admin']);$guidance=$path==='/admin/guidance-certificate-design';
+            try {CertificateDesign::save($_POST,$guidance);}
             catch(HttpError $error){
                 if($error->getCode()!==422)throw $error;
-                http_response_code(422);view('certificate-designer',['design'=>CertificateDesign::current(),'values'=>$_POST,'error'=>$error->getMessage()]);exit;
+                http_response_code(422);view('certificate-designer',['guidance'=>$guidance,'design'=>CertificateDesign::current($guidance),'values'=>$_POST,'error'=>$error->getMessage()]);exit;
             }
-            flash('บันทึกแม่แบบเกียรติบัตรแล้ว จะใช้กับเกียรติบัตรที่ออกใหม่');redirect('/admin/certificate-design');
+            flash('บันทึกแม่แบบเกียรติบัตรแล้ว จะใช้กับเกียรติบัตรที่ออกใหม่');redirect($path);
         }
         if(preg_match('#^/admin/users/(\d+)$#',$path,$m)){
             Users::updateAccess((int)$m[1]);flash('อัปเดตบัญชีผู้ใช้แล้ว');redirect('/admin#users');

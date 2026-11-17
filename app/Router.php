@@ -33,8 +33,9 @@ final class Router {
             $name=isset($m[2])?(DB::one('SELECT path FROM department_video_files WHERE video_id=? AND id=?',[$v['id'],$m[2]])['path']??null):$v['media_path'];
             if(!$name)abort(404,'ไม่พบไฟล์');Upload::stream($name,!isset($m[2]));
         }
+        if(preg_match('#^/guidance-certificate/([a-f0-9]{32})/(signature|emblem)$#',$path,$m))CertificateDesign::streamImage($m[2],$m[1],true,true);
         if(preg_match('#^/guidance-certificate/([a-f0-9]{32})$#',$path,$m)){
-            $certificate=DB::one('SELECT * FROM department_video_certificates WHERE code=?',[$m[1]])??abort(404,'ไม่พบเกียรติบัตร');
+            $certificate=DepartmentVideo::certificate($m[1]);
             view('guidance-certificate',compact('certificate'));return;
         }
         if($path==='/dashboard'){Auth::require();view('dashboard');return;}
@@ -55,15 +56,16 @@ final class Router {
         if($path==='/admin/banners'){Auth::require(['admin']);view('banners',['banners'=>Banner::all()]);return;}
         if($path==='/admin/ai-providers'){Auth::require(['admin']);view('ai-providers');return;}
         if(preg_match('#^/media/banners/(\d+)$#',$path,$m))Banner::stream((int)$m[1]);
-        if($path==='/admin/certificate-numbers'){Auth::require(['admin']);view('certificate-numbers');return;}
-        if($path==='/admin/certificate-numbers/export')CertificateNumbers::export();
+        if(in_array($path,['/admin/certificate-numbers','/admin/guidance-certificate-numbers'],true)){Auth::require(['admin']);view('certificate-numbers',['guidance'=>$path==='/admin/guidance-certificate-numbers']);return;}
+        if(in_array($path,['/admin/certificate-numbers/export','/admin/guidance-certificate-numbers/export'],true))CertificateNumbers::export($path==='/admin/guidance-certificate-numbers/export');
         if($path==='/admin'){Auth::require(['admin']);view('admin');return;}
-        if($path==='/admin/certificate-design'){Auth::require(['admin']);view('certificate-designer',['design'=>CertificateDesign::current()]);return;}
-        if($path==='/admin/certificate-design/signature')CertificateDesign::streamSignature();
-        if($path==='/admin/certificate-design/emblem')CertificateDesign::streamImage('emblem');
-        if($path==='/admin/certificate-design/preview'){
-            Auth::require(['admin']);$design=CertificateDesign::current();
-            view('certificate-preview',['design'=>$design,'certificate'=>CertificateDesign::preview($design)]);return;
+        if(preg_match('#^/admin/(guidance-certificate-design|certificate-design)(?:/(signature|emblem|preview))?$#',$path,$m)){
+            Auth::require(['admin']);$guidance=$m[1]==='guidance-certificate-design';
+            if(in_array($m[2]??'',['signature','emblem'],true))CertificateDesign::streamImage($m[2],null,false,$guidance);
+            $design=CertificateDesign::current($guidance);
+            if(($m[2]??'')==='preview')view('certificate-preview',['guidance'=>$guidance,'design'=>$design,'certificate'=>CertificateDesign::preview($design,$guidance)]);
+            else view('certificate-designer',compact('design','guidance'));
+            return;
         }
         if($path==='/admin/users/new'){Auth::require(['admin']);view('user-form',['member'=>null]);return;}
         if($path==='/admin/users/import'){Auth::require(['admin']);view('user-import');return;}

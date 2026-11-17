@@ -18,7 +18,7 @@ final class Category {
 
     public static function selectedName(string $name): string {
         // Keep the selected category available until the enclosing course transaction commits.
-        $category = DB::one('SELECT name FROM categories WHERE name=? FOR SHARE', [$name]);
+        $category = DB::one('SELECT name FROM categories WHERE name=? LOCK IN SHARE MODE', [$name]);
         if (!$category) abort(422, 'กรุณาเลือกหมวดหมู่ที่มีอยู่ในระบบ หากรายการเปลี่ยนไปให้โหลดหน้าใหม่');
         return $category['name'];
     }

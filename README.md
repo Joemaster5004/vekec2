@@ -327,3 +327,31 @@ docker compose -f compose.production.yaml exec -T web php bin/migrate.php
 ```
 
 หลังแก้ไขนี้ เมื่อไม่มีตารางวิดีโอ หน้าแรกยังเปิดได้ ส่วนหน้าจัดการวิดีโอจะแจ้ง 503 พร้อมคำแนะนำให้อัปเดตฐานข้อมูล การเพิ่มวิดีโอต้องรัน migration ให้สำเร็จก่อน หากยังเกิด 500 ตรวจ `docker compose -f compose.production.yaml logs --tail=80 web` (หรือ PHP error log ของโฮสติ้ง) บันทึก log ระบุชนิดข้อผิดพลาด รหัส และตำแหน่งไฟล์ โดยไม่แสดงรายละเอียดฐานข้อมูลแก่ผู้เข้าชม
+
+### MP4 บน Plesk ขึ้น 422 ขณะอ่านความยาว
+
+`app/Upload.php` อ่านความยาวจาก `moov/mvhd` ของ MP4 โดยตรง รองรับ movie header รุ่น 0/1 และขนาด atom แบบ 32/64 บิต จึงไม่จำเป็นต้องเปิด `shell_exec` หรือติดตั้ง ffprobe สำหรับ MP4 ทั่วไป อ้างอิงโครงสร้าง [movie header ของ Apple](https://developer.apple.com/documentation/quicktime-file-format/movie_header_atom) อ่านเฉพาะ header โดยข้าม payload และจำกัดจำนวน atom ที่ตรวจ
+
+หากอ่าน header ไม่ได้ จะลอง ffprobe เมื่อ PHP อนุญาต ถ้ายังอ่านไม่ได้ จะแจ้งให้นำไฟล์ไปบันทึกเป็น MP4 ใหม่หรือตรวจ ffprobe แยกจากข้อความวิดีโอยาวเกิน 12 ชั่วโมง ไม่ใช้ความยาวที่ผู้ใช้กรอกแทนความยาว MP4 ที่ตรวจไม่ได้ อัปเดตไฟล์ `app/Upload.php` บนเซิร์ฟเวอร์แล้วอัปโหลดใหม่ได้ ไม่ต้องเปลี่ยนฐานข้อมูล
+
+ทดสอบจำลองโฮสติ้งที่ปิด shell execution:
+
+```sh
+docker compose -f compose.test.yaml exec -T web php -d disable_functions=shell_exec tests/upload_duration.php
+```
+
+### Plesk: POST วิดีโอเป็น 500 และ log มี SQL code 1064
+
+คำสั่ง shared lock ใช้ `LOCK IN SHARE MODE` แทน `FOR SHARE` เพื่อรองรับ syntax ของ MariaDB และ MySQL โดยคง lock ภายใน transaction อัปเดต `app/DepartmentVideo.php`, `app/Category.php`, `app/EditorImage.php` และ `app/CertificateDesign.php` ไม่ต้องแก้ schema
+
+หากมี warning `open_basedir` จากการตรวจ `/opt/vekec-vendor/autoload.php` ให้แก้เฉพาะบรรทัด require ใน `app/bootstrap.php` เป็น:
+
+```php
+require (is_file(dirname(__DIR__).'/vendor/autoload.php') ? dirname(__DIR__).'/vendor' : '/opt/vekec-vendor') . '/autoload.php';
+```
+
+คงค่า `putenv` สำหรับฐานข้อมูลและค่า production บนเซิร์ฟเวอร์ไว้ทั้งหมด บนโฮสติ้งต้องมี `vendor/autoload.php` ของโปรเจคในตำแหน่งที่ PHP อ่านได้ การเลือก local vendor ก่อนจะไม่ตรวจพาธ `/opt` เมื่อมี local vendor อยู่ ไม่จำเป็นต้องปิดหรือขยาย open_basedir ทดสอบกรณีนี้ด้วย `docker compose -f compose.test.yaml exec -T web php tests/bootstrap_autoload.php`
+
+### ออกแบบและกำหนดเลขที่เกียรติบัตรแนะแนว
+
+ดู [คู่มืออัปเดต Plesk และการใช้งาน](docs/guidance-certificates-plesk.md) ใช้ migration `010_guidance_certificates` หรือ Import `database/guidance-certificates.sql` ผ่าน phpMyAdmin แล้วเปิด **ออกแบบเกียรติบัตรแนะแนว** และ **เลขที่เกียรติบัตรแนะแนว** ในส่วนผู้ดูแล เครื่องมือออกแบบใช้ชุดเดียวกับเกียรติบัตรหลัก รองรับตรา/ลายเซ็นและผู้บริหาร โดยเก็บการตั้งค่าแยกจากหลักสูตร แบบเริ่มต้นสืบทอดตราและลายเซ็นจากระบบหลัก ต้องเพิ่มและเปิดใช้ชุดเลขของงานแนะแนวก่อนออกใบใหม่ ใบเดิมยังคงรูปแบบเดิม

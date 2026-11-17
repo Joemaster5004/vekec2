@@ -51,7 +51,7 @@ final class EditorImage {
         }
         $names = array_values(array_unique($names));
         if (!$names) return;
-        $found = DB::all('SELECT path FROM editor_images WHERE course_id=? AND path IN (' . implode(',', array_fill(0, count($names), '?')) . ') FOR SHARE', [$courseId, ...$names]);
+        $found = DB::all('SELECT path FROM editor_images WHERE course_id=? AND path IN (' . implode(',', array_fill(0, count($names), '?')) . ') LOCK IN SHARE MODE', [$courseId, ...$names]);
         if (count($found) !== count($names)) abort(422, 'รูปภาพต้องเป็นภาพที่อัปโหลดในรายวิชานี้เท่านั้น');
     }
 

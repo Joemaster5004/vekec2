@@ -18,9 +18,70 @@ final class Upload {
         return $name;
     }
     public static function duration(string $name): int {
-        $output=shell_exec('ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '.escapeshellarg(self::path($name)).' 2>/dev/null');
-        $duration=(float)trim((string)$output);if(!is_finite($duration)||$duration<=0||$duration>43200)abort(422,'ไม่สามารถอ่านความยาว MP4 หรือวิดีโอยาวเกิน 12 ชั่วโมง');
+        $path=self::path($name);
+        if(!is_file($path)||!is_readable($path))abort(422,'ไม่พบไฟล์ MP4 หรือเซิร์ฟเวอร์ไม่มีสิทธิ์อ่านไฟล์');
+        // Read the movie header directly: shared hosting need not enable shell_exec/ffprobe.
+        $duration=self::mp4Duration($path);
+        if($duration===null && function_exists('shell_exec')) {
+            $output=@shell_exec('ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 '.escapeshellarg($path).' 2>/dev/null');
+            $value=trim((string)$output);
+            if(is_numeric($value) && is_finite((float)$value) && (float)$value>0)$duration=(float)$value;
+        }
+        if($duration===null)abort(422,'อ่านความยาวไฟล์ MP4 ไม่สำเร็จ กรุณาบันทึกวิดีโอเป็น MP4 ใหม่ หรือติดต่อผู้ดูแลให้ตรวจสอบ ffprobe บนเซิร์ฟเวอร์');
+        if($duration>43200)abort(422,'วิดีโอต้องมีความยาวไม่เกิน 12 ชั่วโมง');
         return (int)ceil($duration);
+    }
+
+    private static function mp4Duration(string $path): ?float {
+        $file=@fopen($path,'rb');
+        if(!$file)return null;
+        try {
+            $size=fstat($file)['size'];
+            $budget=4096;
+            $movie=self::findMp4Box($file,0,$size,'moov',$budget);
+            if(!$movie)return null;
+            $header=self::findMp4Box($file,$movie[0],$movie[1],'mvhd',$budget);
+            if(!$header || $header[1]-$header[0]<20)return null;
+            fseek($file,$header[0]);
+            $bytes=fread($file,min(32,$header[1]-$header[0]));
+            $version=ord($bytes[0]);
+            if($version===0 && strlen($bytes)>=20) {
+                $scale=unpack('N',substr($bytes,12,4))[1];
+                $ticks=unpack('N',substr($bytes,16,4))[1];
+                if($ticks===0xffffffff)return null; // Unknown duration sentinel.
+            } elseif($version===1 && strlen($bytes)>=32) {
+                $scale=unpack('N',substr($bytes,20,4))[1];
+                $parts=unpack('Nhigh/Nlow',substr($bytes,24,8));
+                if($parts['high']===0xffffffff && $parts['low']===0xffffffff)return null;
+                $ticks=$parts['high']*4294967296.0+$parts['low'];
+            } else return null;
+            if($scale<=0 || $ticks<=0)return null;
+            $duration=$ticks/$scale;
+            return is_finite($duration)?$duration:null;
+        } finally {fclose($file);}
+    }
+
+    /** Scan siblings by offsets, skipping media payloads without loading them into memory. */
+    private static function findMp4Box($file,int $start,int $end,string $type,int &$budget): ?array {
+        for($offset=$start;$offset<=$end-8 && $budget>0;$offset+=$size) {
+            --$budget;
+            if(fseek($file,$offset)!==0)return null;
+            $bytes=fread($file,8);
+            if(strlen($bytes)!==8)return null;
+            $box=unpack('Nsize/a4type',$bytes);$size=$box['size'];$header=8;
+            if($size===1) {
+                $extended=fread($file,8);
+                if(strlen($extended)!==8)return null;
+                $parts=unpack('Nhigh/Nlow',$extended);
+                // Reject offsets outside this parent before any float-to-int conversion.
+                $length=$parts['high']*4294967296.0+$parts['low'];
+                if($length>$end-$offset)return null;
+                $size=(int)$length;$header=16;
+            } elseif($size===0)$size=$end-$offset;
+            if($size<$header || $size>$end-$offset)return null;
+            if($box['type']===$type)return [$offset+$header,$offset+$size];
+        }
+        return null;
     }
     public static function stream(string $name,bool $inline=false): never {
         $path=self::path($name);if(!is_file($path))abort(404,'ไม่พบไฟล์');

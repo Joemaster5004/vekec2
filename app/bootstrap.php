@@ -2,7 +2,8 @@
 declare(strict_types=1);
 namespace App;
 
-require (is_file('/opt/vekec-vendor/autoload.php') ? '/opt/vekec-vendor' : dirname(__DIR__).'/vendor') . '/autoload.php';
+// Prefer the project's dependencies on shared hosting without probing restricted /opt.
+require (is_file(dirname(__DIR__).'/vendor/autoload.php') ? dirname(__DIR__).'/vendor' : '/opt/vekec-vendor') . '/autoload.php';
 spl_autoload_register(static function (string $class): void {
     if (str_starts_with($class, 'App\\')) {
         $file = __DIR__ . '/' . substr($class, 4) . '.php';

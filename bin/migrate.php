@@ -149,6 +149,11 @@ try {
         DB::run('INSERT INTO schema_migrations(version) VALUES(?)',[$version]);
         echo "Applied public department introduction videos.\n";
     }
+    $version='010_guidance_certificates';
+    if(!DB::one('SELECT version FROM schema_migrations WHERE version=?',[$version])) {
+        foreach(explode(';',file_get_contents(dirname(__DIR__).'/database/guidance-certificates.sql')) as $sql)if(trim($sql)!=='')DB::run($sql);
+        echo "Applied guidance certificate designs and numbering.\n";
+    }
     echo "Schema is up to date.\n";
 } finally {
     DB::one("SELECT RELEASE_LOCK('vekec_schema_migrations')");

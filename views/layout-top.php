@@ -27,7 +27,7 @@ require_once __DIR__ . '/icons.php';
         <script src="/assets/certificate-layout.js" defer></script><?php endif; ?>
     <link rel="stylesheet" href="/assets/rich-editor.css">
     <script src="/assets/jquery.min.js" defer></script>
-    <script src="/assets/app.js?v=<?= filemtime(dirname(__DIR__).'/public/assets/app.js') ?>" defer></script><?php if (!empty($certificateDesigner)): ?><script src="/assets/certificate-designer.js" defer></script><?php endif; ?><?php if (!empty($richEditor)): ?><script src="/assets/vendor/quill/quill.js" defer></script>
+    <script src="/assets/app.js?v=<?= filemtime(dirname(__DIR__).'/public/assets/app.js') ?>" defer></script><?php if (!empty($certificateDesigner)): ?><script src="/assets/certificate-designer.js?v=<?= filemtime(dirname(__DIR__).'/public/assets/certificate-designer.js') ?>" defer></script><?php endif; ?><?php if (!empty($richEditor)): ?><script src="/assets/vendor/quill/quill.js" defer></script>
         <script src="/assets/rich-editor.js" defer></script><?php endif; ?>
 <?php if (!empty($aiDraftAssets)): ?>
     <link rel="stylesheet" href="/assets/ai-draft.css?v=<?= filemtime(dirname(__DIR__).'/public/assets/ai-draft.css') ?>">
@@ -57,6 +57,7 @@ require_once __DIR__ . '/icons.php';
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/certificate-design" class="nav-item <?= str_starts_with($current, '/admin/certificate-design') ? 'active' : '' ?>"><?= icon('award') ?>ออกแบบเกียรติบัตร</a><?php endif; ?>
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/ai-providers" class="nav-item <?= $current === '/admin/ai-providers' ? 'active' : '' ?>"><?= icon('spark') ?>ผู้ให้บริการ AI</a><?php endif; ?>
                 <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/department-videos" class="nav-item <?= $current === '/admin/department-videos' ? 'active' : '' ?>"><?= icon('play') ?>วิดีโอแนะนำแผนกวิชา</a><?php endif; ?>
+                <?php if ($user && $user['role'] === 'admin'): ?><a href="/admin/guidance-certificate-design" class="nav-item <?= str_starts_with($current, '/admin/guidance-certificate-design') ? 'active' : '' ?>"><?= icon('award') ?>ออกแบบเกียรติบัตรแนะแนว</a><a href="/admin/guidance-certificate-numbers" class="nav-item <?= str_starts_with($current, '/admin/guidance-certificate-numbers') ? 'active' : '' ?>"><?= icon('file') ?>เลขที่เกียรติบัตรแนะแนว</a><?php endif; ?>
                 <div class="sidebar-label spaced">บัญชีของฉัน</div><a href="/profile" class="nav-item <?= $current === '/profile' ? 'active' : '' ?>"><?= icon('user') ?>ข้อมูลส่วนตัว</a>
             </nav>
             <div class="sidebar-bottom">
