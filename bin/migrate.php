@@ -154,6 +154,14 @@ try {
         foreach(explode(';',file_get_contents(dirname(__DIR__).'/database/guidance-certificates.sql')) as $sql)if(trim($sql)!=='')DB::run($sql);
         echo "Applied guidance certificate designs and numbering.\n";
     }
+    $version='011_department_video_views';
+    if(!DB::one('SELECT version FROM schema_migrations WHERE version=?',[$version])) {
+        if(!DB::one("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='department_videos' AND COLUMN_NAME='view_count'")) {
+            DB::run('ALTER TABLE department_videos ADD COLUMN view_count BIGINT UNSIGNED NOT NULL DEFAULT 0');
+        }
+        DB::run('INSERT INTO schema_migrations(version) VALUES(?)',[$version]);
+        echo "Applied department video view counters. Existing certificates preserved.\n";
+    }
     echo "Schema is up to date.\n";
 } finally {
     DB::one("SELECT RELEASE_LOCK('vekec_schema_migrations')");

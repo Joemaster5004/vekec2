@@ -53,6 +53,9 @@
 .guidance-card h3,.guidance-card p { margin:0; overflow-wrap:anywhere; }
 .guidance-card p { color:var(--muted,#77857f); white-space:pre-line; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 .guidance-card .button { margin-top:auto; }
+.guidance-card-stats { display:flex; flex-wrap:wrap; gap:8px 16px; color:var(--muted,#77857f); font-size:14px; }
+.guidance-card-stats span { display:inline-flex; align-items:center; gap:6px; }
+.guidance-card-stats svg { width:18px; height:18px; flex-shrink:0; }
 .guidance-card-art { background:linear-gradient(125deg,#194e43,#287b68); border-radius:14px; min-height:130px; display:flex; align-items:center; justify-content:center; gap:18px; color:white; }
 .guidance-card-art svg { width:42px; height:42px; }
 .guidance-description { overflow-wrap:anywhere; }

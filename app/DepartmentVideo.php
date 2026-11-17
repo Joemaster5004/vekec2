@@ -5,7 +5,7 @@ namespace App;
 final class DepartmentVideo {
     public static function all(bool $public = false, ?int $limit=null, ?Pagination $pagination=null): array {
         try {
-            $sql='SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id'.($public?' WHERE v.active=1':'').' ORDER BY v.id DESC';
+            $sql='SELECT v.*,c.name AS department,(SELECT COUNT(*) FROM department_video_certificates cert WHERE cert.video_id=v.id) AS certificate_count FROM department_videos v JOIN categories c ON c.id=v.category_id'.($public?' WHERE v.active=1':'').' ORDER BY v.id DESC';
             if($pagination)return DB::all($sql.' LIMIT ? OFFSET ?',[$pagination->perPage,$pagination->offset]);
             if($limit!==null)return DB::all($sql.' LIMIT ?',[max(1,min(100,$limit))]);
             return DB::all($sql);
@@ -22,6 +22,16 @@ final class DepartmentVideo {
         $v=DB::one('SELECT v.*,c.name AS department FROM department_videos v JOIN categories c ON c.id=v.category_id WHERE v.id=?',[$id])??abort(404,'ไม่พบวิดีโอ');
         if(!$v['active']&&(Auth::user()['role']??'')!=='admin')abort(404,'ไม่พบวิดีโอ');
         return $v;
+    }
+    public static function visit(int $id): array {
+        $video=self::find($id);
+        // Count only the public detail page, once per video in this browser session.
+        // Media requests, watch heartbeats and hidden admin previews are excluded.
+        if($video['active']&&empty($_SESSION['department_video_visits'][$id])){
+            DB::run('UPDATE department_videos SET view_count=view_count+1 WHERE id=? AND active=1',[$id]);
+            $_SESSION['department_video_visits'][$id]=true;
+        }
+        return $video;
     }
     public static function youtube(string $url): ?string {
         $host=strtolower((string)parse_url($url,PHP_URL_HOST));

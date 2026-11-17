@@ -51,6 +51,13 @@ def expect(result, status):
     checks += 1
     return result[1]
 
+def video_stats(client, vid, views, certificates, directory='/'):
+    page = expect(client.request(directory),200)
+    cards = re.findall(r'<article class="panel guidance-card">.*?</article>',page,re.S)
+    card = next(card for card in cards if f'href="/department-videos/{vid}"' in card)
+    assert f'เข้าชม {views:,} ครั้ง' in card, card
+    assert f'รับเกียรติบัตร {certificates:,} คน' in card, card
+
 if __name__ == '__main__':
     a, t, g = Client(), Client(), Client()
     a.login('admin'); t.login('teacher'); g.request('/')
@@ -73,10 +80,18 @@ if __name__ == '__main__':
     page=expect(g.request('/'),200)
     assert page.index('id="department-videos"') < page.index('LATEST COURSES')
     assert '&lt;script&gt;' in page
+    video_stats(g,vid,0,0)
     page=expect(g.request(path),200)
+    video_stats(g,vid,1,0)
+    expect(g.request(path),200)
+    video_stats(g,vid,1,0)  # Refreshes and catalog visits do not inflate views.
+    another_guest=Client()
+    expect(another_guest.request(path),200)
+    video_stats(g,vid,2,0,'/department-videos')
     assert 'https://example.com/apply' in page and 'id="guidance-registration" hidden' in page
     fileid=re.search(fr'{path}/media/(\d+)',page)[1]
     expect(g.request(f'{path}/media/{fileid}'),200)
+    video_stats(g,vid,2,0)
     expect(t.request(f'/admin/department-videos/{vid}/save',data),403)
     expect(t.request(f'/admin/department-videos/{vid}/files/{fileid}/delete',{}),403)
     expect(g.request(path+'/tick',dict(token='bad',confirmed=1)),409)
@@ -93,14 +108,18 @@ if __name__ == '__main__':
     certificate=g.location
     expect(g.request(path+'/certificate',profile),303)
     assert certificate==g.location
+    video_stats(g,vid,2,1)  # Issuance retries reuse the existing certificate.
+    video_stats(g,vid,2,1,'/department-videos')
     cert=expect(Client().request(certificate),200)
     assert 'Guidance Student' in cert and 'guidance@example.invalid' not in cert and 'Private School' not in cert
     expect(a.request(f'/admin/department-videos/{vid}/save',{**data,'title':'Changed title','active':0}),303)
     expect(g.request(path),404)
+    expect(a.request(path),200)  # Hidden admin previews must not add views.
     expect(g.request(f'{path}/media/{fileid}'),404)
     cert=expect(g.request(certificate),200)
     assert 'Changed title' not in cert
     expect(a.request(f'/admin/department-videos/{vid}/save',data),303)
+    video_stats(g,vid,2,1)  # Edits and republishing preserve the counters.
     expect(g.request(path+'/certificate',profile),403)
     expect(a.request(f'/admin/categories/{category}/delete',{}),409)
     expect(a.request(f'/admin/department-videos/{vid}/files/{fileid}/delete',{}),303)
@@ -110,6 +129,7 @@ if __name__ == '__main__':
     expect(a.request('/admin/department-videos',{**data,'source':'upload','title':'Uploaded clip'},[('video','clip.mp4','video/mp4',clip)]),303)
     page=expect(a.request('/admin/department-videos'),200)
     vid=max(map(int,re.findall(r'id="department-video-(\d+)"',page)));path=f'/department-videos/{vid}'
+    video_stats(g,vid,0,0)  # Counters belong to individual videos.
     expect(g.request(path),200)
     expect(g.request(path+'/media',headers={'Range':'bytes=0-31'}),206)
     state=json.loads(expect(g.request(path+'/start',{}),200));token=state['token']

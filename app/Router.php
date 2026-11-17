@@ -33,7 +33,7 @@ final class Router {
             view('department-videos',['departmentVideos'=>DepartmentVideo::all(true,null,$pagination),'pagination'=>$pagination]);return;
         }
         if($path==='/admin/department-videos'){Auth::require(['admin']);view('department-videos-admin',['videos'=>DepartmentVideo::all(),'categories'=>Category::options()]);return;}
-        if(preg_match('#^/department-videos/(\d+)$#',$path,$m)){view('department-video',['video'=>DepartmentVideo::find((int)$m[1])]);return;}
+        if(preg_match('#^/department-videos/(\d+)$#',$path,$m)){view('department-video',['video'=>DepartmentVideo::visit((int)$m[1])]);return;}
         if(preg_match('#^/department-videos/(\d+)/media(?:/(\d+))?$#',$path,$m)){
             $v=DepartmentVideo::find((int)$m[1]);
             $name=isset($m[2])?(DB::one('SELECT path FROM department_video_files WHERE video_id=? AND id=?',[$v['id'],$m[2]])['path']??null):$v['media_path'];
