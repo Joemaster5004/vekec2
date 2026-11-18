@@ -59,5 +59,9 @@
 .guidance-card-art { background:linear-gradient(125deg,#194e43,#287b68); border-radius:14px; min-height:130px; display:flex; align-items:center; justify-content:center; gap:18px; color:white; }
 .guidance-card-art svg { width:42px; height:42px; }
 .guidance-description { overflow-wrap:anywhere; }
+.guidance-image-attachment { width:100%; max-width:420px; margin:24px 0; }
+.guidance-image-attachment a { display:block; padding:8px; border:1px solid var(--line); border-radius:10px; background:var(--bg); }
+.guidance-image-attachment img { display:block; width:100%; max-height:480px; object-fit:contain; border-radius:6px; }
+.guidance-image-attachment figcaption { margin-top:8px; color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
 #guidance-registration { border-top:1px solid #dce5df; margin-top:32px; padding-top:24px; }
 [data-guidance-video] video { width:100%; }

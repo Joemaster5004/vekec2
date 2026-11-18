@@ -37,7 +37,7 @@ final class Router {
         if(preg_match('#^/department-videos/(\d+)/media(?:/(\d+))?$#',$path,$m)){
             $v=DepartmentVideo::find((int)$m[1]);
             $name=isset($m[2])?(DB::one('SELECT path FROM department_video_files WHERE video_id=? AND id=?',[$v['id'],$m[2]])['path']??null):$v['media_path'];
-            if(!$name)abort(404,'ไม่พบไฟล์');Upload::stream($name,!isset($m[2]));
+            if(!$name)abort(404,'ไม่พบไฟล์');Upload::stream($name,!isset($m[2])||(bool)preg_match('/\.(jpg|png|webp)$/i',$name));
         }
         if(preg_match('#^/guidance-certificate/([a-f0-9]{32})/(signature|emblem)$#',$path,$m))CertificateDesign::streamImage($m[2],$m[1],true,true);
         if(preg_match('#^/guidance-certificate/([a-f0-9]{32})$#',$path,$m)){

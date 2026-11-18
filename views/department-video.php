@@ -14,7 +14,14 @@ $title=$video['title'];require __DIR__.'/layout-top.php';$id=(int)$video['id'];$
 </div><p class="form-hint" data-guidance-status role="status">รับชมวิดีโอจนจบเพื่อกรอกข้อมูลและรับเกียรติบัตร</p>
 <?php if($mode==='external'): ?><button type="button" class="button outline" data-guidance-confirm disabled>ยืนยันว่ารับชมวิดีโอจบแล้ว</button><?php endif; ?>
 <p class="guidance-description"><?= nl2br(e($video['description'])) ?></p>
-<?php foreach(DB::all('SELECT * FROM department_video_files WHERE video_id=? ORDER BY id',[$id]) as $f): ?><p><a class="attachment" href="/department-videos/<?= $id ?>/media/<?= (int)$f['id'] ?>"><?= icon('download') ?><?= e($f['name']) ?></a></p><?php endforeach; ?>
+<?php foreach(DB::all('SELECT * FROM department_video_files WHERE video_id=? ORDER BY id',[$id]) as $f): ?>
+<?php if(preg_match('/\.(jpg|png|webp)$/i',$f['path'])): ?>
+<figure class="guidance-image-attachment">
+<a href="/department-videos/<?= $id ?>/media/<?= (int)$f['id'] ?>" target="_blank" rel="noopener noreferrer" aria-label="<?= e('ดูภาพขนาดเต็ม: '.$f['name']) ?>"><img src="/department-videos/<?= $id ?>/media/<?= (int)$f['id'] ?>" alt="<?= e($f['name']) ?>" loading="lazy" decoding="async"></a>
+<figcaption><?= e($f['name']) ?> · คลิกเพื่อดูภาพขนาดเต็ม</figcaption>
+</figure>
+<?php else: ?><p><a class="attachment" href="/department-videos/<?= $id ?>/media/<?= (int)$f['id'] ?>"><?= icon('download') ?><?= e($f['name']) ?></a></p><?php endif; ?>
+<?php endforeach; ?>
 <?php if($video['application_url']): ?><a class="button" href="<?= e($video['application_url']) ?>" target="_blank" rel="noopener noreferrer">สมัครเรียนสาขานี้ <?= icon('arrow') ?></a><?php endif; ?>
 <section id="guidance-registration" hidden><h2>กรอกข้อมูลเพื่อรับเกียรติบัตร</h2><p>เกียรติบัตรเข้าร่วมกิจกรรมแนะแนวแผนกวิชา</p><form method="post" action="/department-videos/<?= $id ?>/certificate" class="form-stack">
 <?= csrfField() ?><label>ชื่อ–นามสกุล<input name="name" maxlength="180" autocomplete="name" required></label>
